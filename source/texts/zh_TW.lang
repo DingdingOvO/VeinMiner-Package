@@ -1,0 +1,97 @@
+## VeinMiner 連鎖採集 - 繁體中文語言檔案
+
+## ===== 命令類 =====
+veinminer.cmd.usage=用法: /vein <子命令> [參數]
+veinminer.cmd.invalid=無效的命令參數。使用 /vein 查看說明。
+veinminer.cmd.onlyOp=此命令僅管理員(OP)可用。
+veinminer.cmd.success=命令執行成功。
+veinminer.cmd.failed=命令執行失敗。
+veinminer.cmd.notFound=未找到對應的命令。
+veinminer.cmd.alreadyExists=該方塊已在列表中。
+veinminer.cmd.invalidBlock=無效的方塊ID。
+veinminer.cmd.invalidNumber=無效的數字。
+veinminer.cmd.reloadSuccess=設定已重新載入。
+veinminer.cmd.reloadFailed=設定重新載入失敗。
+veinminer.cmd.blacklistAdd=已將 %s 加入全域黑名單。
+veinminer.cmd.blacklistRemove=已將 %s 從全域黑名單移除。
+veinminer.cmd.whitelistAdd=已將 %s 加入額外白名單。
+veinminer.cmd.whitelistRemove=已將 %s 從額外白名單移除。
+veinminer.cmd.limitSet=已將 %s 的連鎖上限設定為 %d。
+veinminer.cmd.limitDefault=已將預設連鎖上限設定為 %d。
+veinminer.cmd.resetDone=已重置玩家 %s 的資料。
+veinminer.cmd.resetAllDone=已重置所有玩家的資料。
+veinminer.cmd.rateSet=已設定全伺服速率限制: 每秒 %d / 每 tick %d。
+veinminer.cmd.envDetected=偵測到執行環境: %s
+veinminer.cmd.serverMode=伺服器模式 (BDS)
+veinminer.cmd.clientMode=用戶端模式 (單機/區域網路)
+veinminer.cmd.cmdNotAvailable=此命令僅伺服器模式可用。
+
+## ===== UI 類 =====
+veinminer.ui.title=VeinMiner 連鎖採集
+veinminer.ui.toggle=連鎖開關
+veinminer.ui.maxBlocks=最大連鎖數
+veinminer.ui.reset=重置設定
+veinminer.ui.whitelist=白名單管理
+veinminer.ui.addBlock=新增方塊
+veinminer.ui.removeBlock=移除方塊
+veinminer.ui.status=目前狀態
+veinminer.ui.enabled=已啟用
+veinminer.ui.disabled=已停用
+veinminer.ui.on=開
+veinminer.ui.off=關
+veinminer.ui.mode=執行模式
+veinminer.ui.universal=通用
+veinminer.ui.switchMode=切換模式
+veinminer.ui.reload=重新載入設定
+veinminer.ui.confirm=確認
+veinminer.ui.cancel=取消
+veinminer.ui.back=返回
+veinminer.ui.current=目前值
+veinminer.ui.default=預設
+veinminer.ui.global=全域
+veinminer.ui.adminPanel=管理面板
+
+## ===== 訊息類 =====
+veinminer.msg.toolInvalid=必須使用合適的工具(鎬/斧/鏟)才能觸發連鎖。
+veinminer.msg.complete=連鎖完成，共採集 %d 個方塊。
+veinminer.msg.enabled=連鎖採集已啟用。
+veinminer.msg.disabled=連鎖採集已停用。
+veinminer.msg.resetDone=設定已重置。
+veinminer.msg.blockAdded=已新增方塊: %s
+veinminer.msg.blockRemoved=已移除方塊: %s
+veinminer.msg.alreadyInList=該方塊已在列表中。
+veinminer.msg.notInList=該方塊不在列表中。
+veinminer.msg.scanTimeout=掃描逾時，連鎖已中止。
+veinminer.msg.blockUnloaded=目標區塊未載入，連鎖已中止。
+veinminer.msg.limitReached=已達到連鎖上限。
+veinminer.msg.cooldown=個人冷卻中，請等待 %d 秒。
+veinminer.msg.globalCooldown=全伺服冷卻中，請等待 %d 秒。
+veinminer.msg.serverBusy=伺服器忙碌，連鎖請求已拒絕。
+veinminer.msg.dimensionDisabled=目前維度已停用連鎖。
+veinminer.msg.connected=已連接 %d 個方塊，開始採集...
+veinminer.msg.noPermission=你沒有權限執行此操作。
+veinminer.msg.envDetected=自動偵測到環境: %s
+
+## ===== 錯誤類 =====
+veinminer.error.generic=發生未知錯誤。
+veinminer.error.storage=資料儲存錯誤。
+veinminer.error.parsing=資料解析錯誤。
+veinminer.error.unknown=未知錯誤。
+
+## ===== 伺服器管理 UI =====
+veinminer.ui.server.limits=方塊上限管理
+veinminer.ui.server.blacklist=黑名單管理
+veinminer.ui.server.whitelistExtra=額外白名單
+veinminer.ui.server.dimension=維度設定
+veinminer.ui.server.rateLimit=速率限制
+veinminer.ui.server.playerOverride=玩家權限
+veinminer.ui.server.cooldown=冷卻設定
+
+## ===== 狀態文字 =====
+veinminer.status.enabled=啟用
+veinminer.status.disabled=停用
+veinminer.status.client=用戶端
+veinminer.status.server=伺服器
+veinminer.status.overworld=主世界
+veinminer.status.nether=地獄
+veinminer.status.end=終界

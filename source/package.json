@@ -1,0 +1,31 @@
+{
+    "name": "veinminer-addon",
+    "version": "1.0.1",
+    "description": "Minecraft 基岩版连锁采集行为包 - 自动环境适配",
+    "type": "module",
+    "scripts": {
+        "build": "tsc -p tsconfig.json && node build.mjs",
+        "compile": "tsc -p tsconfig.json",
+        "pack": "node build.mjs",
+        "watch": "tsc -p tsconfig.json --watch",
+        "dev": "tsc -p tsconfig.json && node build.mjs --watch",
+        "clean": "node -e \"require('fs').rmSync('build', {recursive: true, force: true})\" && echo 'Cleaned build/'"
+    },
+    "devDependencies": {
+        "@minecraft/server": "2.2.0-beta.1.21.100-stable",
+        "@minecraft/server-ui": "2.1.0-beta.1.21.100-stable",
+        "@minecraft/common": "^1.2.0",
+        "@types/node": "^22.0.0",
+        "typescript": "^5.6.0"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "license": "MIT",
+    "overrides": {
+        "@minecraft/server": "2.2.0-beta.1.21.100-stable",
+        "@minecraft/server-ui": {
+            "@minecraft/server": "$@minecraft/server"
+        }
+    }
+}
