@@ -22,7 +22,7 @@ const TAG = '§8[VM]§r';
 function main() {
     try {
         Logger.info('=======================================');
-        Logger.info('  VeinMiner 连锁采集 v0.2.0-beta 启动中...');
+        Logger.info('  VeinMiner 连锁采集 v0.0.1-alpha 启动中...');
         Logger.info('=======================================');
         const env = EnvironmentDetector.detect();
         Logger.info(`运行环境: ${env === 'server' ? '服务端模式 (BDS)' : '客户端模式 (单机/局域网)'}`);

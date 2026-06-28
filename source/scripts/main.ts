@@ -25,7 +25,7 @@ const TAG = '§8[VM]§r';
 function main(): void {
     try {
         Logger.info('=======================================');
-        Logger.info('  VeinMiner 连锁采集 v0.2.0-beta 启动中...');
+        Logger.info('  VeinMiner 连锁采集 v0.0.1-alpha 启动中...');
         Logger.info('=======================================');
 
         const env = EnvironmentDetector.detect();
