@@ -1,9 +1,0 @@
-/**
- * BirchLogLimit.ts
- */
-
-export const BIRCH_LOG_LIMIT = 64;
-
-export function getBirchLogLimit(): number {
-    return BIRCH_LOG_LIMIT;
-}
