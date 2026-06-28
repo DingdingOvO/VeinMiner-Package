@@ -59,8 +59,8 @@ const ZH_CN: Record<string, string> = {
     'veinminer.ui.global': '全局',
     'veinminer.ui.adminPanel': '管理面板',
 
-    'veinminer.msg.toolInvalid': '必须使用合适的工具(镐/斧/锹)才能触发连锁。',
-    'veinminer.msg.complete': '连锁完成，共采集 %d 个方块。',
+    'veinminer.msg.toolInvalid': '此方块不在白名单中。',
+    'veinminer.msg.complete': '+%d 方块',
     'veinminer.msg.enabled': '连锁采集已启用。',
     'veinminer.msg.disabled': '连锁采集已禁用。',
     'veinminer.msg.resetDone': '设置已重置。',
@@ -152,8 +152,8 @@ const ZH_TW: Record<string, string> = {
     'veinminer.ui.global': '全域',
     'veinminer.ui.adminPanel': '管理面板',
 
-    'veinminer.msg.toolInvalid': '必須使用合適的工具(鎬/斧/鏟)才能觸發連鎖。',
-    'veinminer.msg.complete': '連鎖完成，共採集 %d 個方塊。',
+    'veinminer.msg.toolInvalid': '此方塊不在白名單中。',
+    'veinminer.msg.complete': '+%d 方塊',
     'veinminer.msg.enabled': '連鎖採集已啟用。',
     'veinminer.msg.disabled': '連鎖採集已停用。',
     'veinminer.msg.resetDone': '設定已重置。',
@@ -245,8 +245,8 @@ const EN_US: Record<string, string> = {
     'veinminer.ui.global': 'Global',
     'veinminer.ui.adminPanel': 'Admin Panel',
 
-    'veinminer.msg.toolInvalid': 'You must use an appropriate tool (pickaxe/axe/shovel) to trigger vein mining.',
-    'veinminer.msg.complete': 'Vein mining complete. Collected %d blocks.',
+    'veinminer.msg.toolInvalid': 'Block not in whitelist.',
+    'veinminer.msg.complete': '+%d blocks',
     'veinminer.msg.enabled': 'Vein mining enabled.',
     'veinminer.msg.disabled': 'Vein mining disabled.',
     'veinminer.msg.resetDone': 'Settings reset.',

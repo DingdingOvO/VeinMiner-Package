@@ -9,14 +9,14 @@
 import { Player, system, Dimension, Vector3 } from '@minecraft/server';
 import { ConfigRegistry } from '../../config/registry/ConfigRegistry';
 import { ToolType } from '../../lib/core/ToolClassifier';
-import { bfsScan, sortByDistance } from '../../lib/core/BFSAlgorithm';
+import { bfsScan, sortByDistance, scanLeaves } from '../../lib/core/BFSAlgorithm';
 import { DurabilityManager } from '../../lib/core/DurabilityManager';
 import { FeedbackHandler } from '../handlers/FeedbackHandler';
 import { PerformanceGuard } from '../../utils/PerformanceGuard';
 import { GlobalRateLimiter } from './GlobalRateLimiter';
 import { PlayerTaskManager } from './PlayerTaskManager';
 import { Logger } from '../../utils/Logger';
-import { SCAN_TIMEOUT_MS } from '../../config/shared/performance';
+import { SCAN_TIMEOUT_MS } from '../../config/shared/performance/index.js';
 
 /** 工具等级 → 每tick连锁方块数（遵循原版挖掘速度等级） */
 const TIER_SPEED: Record<string, number> = {
@@ -27,6 +27,26 @@ const TIER_SPEED: Record<string, number> = {
     stone: 3,
     wooden: 2,
 };
+
+/** 所有原木类型ID集合 */
+const LOG_IDS = new Set([
+    'minecraft:oak_log', 'minecraft:spruce_log', 'minecraft:birch_log',
+    'minecraft:jungle_log', 'minecraft:acacia_log', 'minecraft:dark_oak_log',
+    'minecraft:mangrove_log', 'minecraft:cherry_log',
+    'minecraft:crimson_stem', 'minecraft:warped_stem'
+]);
+
+/** 所有树叶类型ID集合 */
+const LEAF_IDS = new Set([
+    'minecraft:oak_leaves', 'minecraft:spruce_leaves', 'minecraft:birch_leaves',
+    'minecraft:jungle_leaves', 'minecraft:acacia_leaves', 'minecraft:dark_oak_leaves',
+    'minecraft:mangrove_leaves', 'minecraft:cherry_leaves',
+    'minecraft:azalea_leaves', 'minecraft:azalea_leaves_flowered'
+]);
+
+/** 树叶搜索参数 */
+const LEAF_SCAN_RADIUS = 4;
+const LEAF_MAX_COUNT = 64;
 
 function getSpeed(tier: string | undefined, isHand: boolean): number {
     if (isHand) return 1;
@@ -101,12 +121,15 @@ export class VeinMinerController {
         this.playerTasks.start(player);
         const maxVein = this.registry.getEffectiveMaxVein(player, startTypeId, dimension.id);
 
-        Logger.debug(`[Controller] BFS 开始: type=${startTypeId}, max=${maxVein}, speed=${speed}/tick, hand=${isHand}, pos=(${startLocation.x},${startLocation.y},${startLocation.z})`);
+        const isLog = LOG_IDS.has(startTypeId);
+        Logger.debug(`[Controller] BFS 开始: type=${startTypeId}, max=${maxVein}, speed=${speed}/tick, hand=${isHand}, treeMode=${isLog}, pos=(${startLocation.x},${startLocation.y},${startLocation.z})`);
 
+        // 原木用26面BFS（覆盖金合欢斜向），其他用6面
         const scanResult = bfsScan(dimension, startLocation, {
             maxBlocks: maxVein,
             timeoutMs: SCAN_TIMEOUT_MS,
-            targetTypeId: startTypeId
+            targetTypeId: startTypeId,
+            use26: isLog
         });
 
         if (scanResult.timedOut) {
@@ -115,18 +138,27 @@ export class VeinMinerController {
             this.playerTasks.finish(player);
             return;
         }
-        if (scanResult.blocks.length <= 1) {
+
+        let toBreak = scanResult.blocks.length > 1 ? scanResult.blocks.slice(1) : [];
+        // 树木模式：自动带树叶
+        let leafBlocks: { x: number; y: number; z: number }[] = [];
+        if (isLog && scanResult.blocks.length >= 1) {
+            leafBlocks = scanLeaves(dimension, scanResult.blocks, LEAF_IDS, LEAF_SCAN_RADIUS, LEAF_MAX_COUNT);
+        }
+
+        if (toBreak.length === 0 && leafBlocks.length === 0) {
             PerformanceGuard.taskFinished();
             this.playerTasks.finish(player);
             return;
         }
 
-        const toBreak = scanResult.blocks.slice(1);
-        this.feedback.info(player, 'veinminer.msg.connected', toBreak.length);
-        Logger.debug(`[Controller] BFS 完成: 找到 ${toBreak.length} 个相连方块, 耗时 ${scanResult.elapsedMs}ms`);
+        const totalCount = toBreak.length + leafBlocks.length;
+        Logger.debug(`[Controller] BFS 完成: 原木 ${toBreak.length} + 树叶 ${leafBlocks.length} = ${totalCount}, 耗时 ${scanResult.elapsedMs}ms`);
 
+        // 原木按距离排序，树叶放最后
         const sorted = sortByDistance(toBreak, startLocation);
-        this.scheduleDestruction(player, sorted, dimension, speed, isHand);
+        const sortedLeaves = sortByDistance(leafBlocks, startLocation);
+        this.scheduleDestruction(player, [...sorted, ...sortedLeaves], dimension, speed, isHand);
     }
 
     private scheduleDestruction(player: Player, blocks: { x: number; y: number; z: number }[], dimension: Dimension, speed: number, isHand: boolean): void {

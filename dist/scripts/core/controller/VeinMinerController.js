@@ -135,7 +135,6 @@ export class VeinMinerController {
             return;
         }
         const totalCount = toBreak.length + leafBlocks.length;
-        this.feedback.info(player, 'veinminer.msg.connected', totalCount);
         Logger.debug(`[Controller] BFS 完成: 原木 ${toBreak.length} + 树叶 ${leafBlocks.length} = ${totalCount}, 耗时 ${scanResult.elapsedMs}ms`);
         // 原木按距离排序，树叶放最后
         const sorted = sortByDistance(toBreak, startLocation);
