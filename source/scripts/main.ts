@@ -9,24 +9,19 @@ import { Logger } from './utils/Logger';
 import { PerformanceGuard } from './utils/PerformanceGuard';
 import { DataMigrator } from './data/storage/DataMigrator';
 import { ConfigRegistry } from './config/registry/ConfigRegistry';
-import { registerAllCommands, CommandRegistry } from './commands';
+import { registerAllCommands, CommandRegistry } from './commands/index.js';
 import { EventListener } from './core/controller/EventListener';
 
 function main(): void {
     try {
         Logger.info('=======================================');
-        Logger.info('  VeinMiner 连锁采集 v1.0.1 启动中...');
+        Logger.info('  VeinMiner 连锁采集 v0.2.0-beta 启动中...');
         Logger.info('=======================================');
 
         const env = EnvironmentDetector.detect();
         Logger.info(`运行环境: ${env === 'server' ? '服务端模式 (BDS)' : '客户端模式 (单机/局域网)'}`);
 
         I18n.init();
-        DataMigrator.migrate();
-
-        const registry = ConfigRegistry.getInstance();
-        Logger.info(`ConfigRegistry 已就绪 (环境: ${registry.getEnvironment()})`);
-
         registerAllCommands();
         EventListener.register();
 
@@ -38,31 +33,36 @@ function main(): void {
             PerformanceGuard.onTick();
         }, 1);
 
-        // /vein 命令
+        // #vein 触发设置界面（用 # 前缀，比 / 更容易监听）
         try {
             world.beforeEvents.chatSend.subscribe((event) => {
                 const msg = event.message.trim();
-                if (msg.startsWith('/vein ') || msg === '/vein') {
+                if (msg.startsWith('#vein ') || msg === '#vein') {
                     event.cancel = true;
                     const args = msg.split(/\s+/).slice(1).filter(a => a.length > 0);
                     const sender = event.sender;
                     system.run(() => { CommandRegistry.dispatch(sender, args); });
                 }
             });
-            Logger.info('/vein 命令已注册（通过 chat 拦截）');
+            Logger.info('#vein 聊天触发已注册');
         } catch (err) {
-            Logger.error('命令注册失败', err);
+            Logger.error('聊天触发注册失败', err);
         }
 
         Logger.info('=======================================');
         Logger.info('  VeinMiner 启动完成');
         Logger.info('  使用方法: 潜行 + 挖方块 触发连锁');
-        Logger.info('  命令: /vein 打开设置菜单');
+        Logger.info('  聊天输入 #vein 打开设置菜单');
         Logger.info('=======================================');
 
-        for (const player of world.getAllPlayers()) {
-            player.sendMessage(`§a[VeinMiner]§r §7已加载 §b| §f潜行+挖掘 触发连锁采集 §b| §f/vein 打开菜单§r`);
-        }
+        // 延迟到下一 tick 再访问 world（避免 early execution 错误）
+        system.run(() => {
+            try { DataMigrator.migrate(); } catch (e) { Logger.error('数据迁移失败(延迟)', e); }
+            try { ConfigRegistry.getInstance(); } catch (e) { Logger.error('配置加载失败(延迟)', e); }
+            for (const player of world.getAllPlayers()) {
+                player.onScreenDisplay.setActionBar(`§a[VeinMiner]§r §7已加载 §b| §f潜行+挖掘 连锁 §b| §f#vein 菜单`);
+            }
+        });
     } catch (err) {
         Logger.error('VeinMiner 启动失败', err);
     }
