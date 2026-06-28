@@ -78,13 +78,12 @@ export class CommandRegistry {
         }
     }
     /**
-     * 打开主菜单（无参数 /vein）
+     * 打开主菜单
      */
     static openMainMenu(player) {
-        // 延迟加载，避免循环依赖
-        import('../ui/menus/MainMenu').then(m => {
+        import('../ui/menus/MainMenu/index.js').then(m => {
             m.MainMenu.show(player).catch(err => {
-                Logger.error('打开主菜单失败', err);
+                Logger.error('打开菜单失败', err);
             });
         });
     }
