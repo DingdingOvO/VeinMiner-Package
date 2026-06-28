@@ -1,9 +1,11 @@
 /**
  * VeinMinerController.ts ★ 核心：连锁采集主控制器 ★
  *
- * 逻辑（与原版 VeinMiner 一致）：
- *   - 空手 → 白名单中的徒手可破坏方块（木头、泥土等）也能连锁，速度 1 块/tick
- *   - 有工具 → 连锁，工具越好速度越快，消耗耐久
+ * 逻辑：
+ *   - 空手 → 白名单中的徒手可破坏方块也能连锁
+ *   - 有工具 → 连锁，消耗耐久
+ *   - 所有方块在一个 tick 内全部破坏（瞬间连锁）
+ *   - 掉落物集中到挖掘位置（可关闭）
  */
 
 import { Player, system, Dimension, Vector3 } from '@minecraft/server';
@@ -17,16 +19,6 @@ import { GlobalRateLimiter } from './GlobalRateLimiter';
 import { PlayerTaskManager } from './PlayerTaskManager';
 import { Logger } from '../../utils/Logger';
 import { SCAN_TIMEOUT_MS } from '../../config/shared/performance/index.js';
-
-/** 工具等级 → 每tick连锁方块数（遵循原版挖掘速度等级） */
-const TIER_SPEED: Record<string, number> = {
-    netherite: 8,
-    diamond: 6,
-    iron: 4,
-    golden: 4,
-    stone: 3,
-    wooden: 2,
-};
 
 /** 所有原木类型ID集合 */
 const LOG_IDS = new Set([
@@ -47,11 +39,6 @@ const LEAF_IDS = new Set([
 /** 树叶搜索参数 */
 const LEAF_SCAN_RADIUS = 4;
 const LEAF_MAX_COUNT = 64;
-
-function getSpeed(tier: string | undefined, isHand: boolean): number {
-    if (isHand) return 1;
-    return (tier && TIER_SPEED[tier]) ?? 2;
-}
 
 export interface VeinMineRequest {
     player: Player;
@@ -79,7 +66,7 @@ export class VeinMinerController {
     }
 
     public tryStart(request: VeinMineRequest): boolean {
-        const { player, startTypeId, startLocation, startDimension, tool, tier } = request;
+        const { player, startTypeId, startLocation, startDimension, tool } = request;
         try {
             if (!this.registry.getPersonalToggle(player)) return false;
 
@@ -96,7 +83,7 @@ export class VeinMinerController {
             }
             if (!this.playerTasks.canStart(player)) return false;
 
-            this.startTask(player, startTypeId, startLocation, startDimension, getSpeed(tier, isHand), isHand);
+            this.startTask(player, startTypeId, startLocation, startDimension, isHand);
             return true;
         } catch (err) {
             Logger.error('连锁采集启动失败', err);
@@ -116,13 +103,13 @@ export class VeinMinerController {
         return true;
     }
 
-    private startTask(player: Player, startTypeId: string, startLocation: Vector3, dimension: Dimension, speed: number, isHand: boolean): void {
+    private startTask(player: Player, startTypeId: string, startLocation: Vector3, dimension: Dimension, isHand: boolean): void {
         PerformanceGuard.taskStarted();
         this.playerTasks.start(player);
         const maxVein = this.registry.getEffectiveMaxVein(player, startTypeId, dimension.id);
-
         const isLog = LOG_IDS.has(startTypeId);
-        Logger.debug(`[Controller] BFS 开始: type=${startTypeId}, max=${maxVein}, speed=${speed}/tick, hand=${isHand}, treeMode=${isLog}, pos=(${startLocation.x},${startLocation.y},${startLocation.z})`);
+
+        Logger.debug(`[Controller] BFS: type=${startTypeId}, max=${maxVein}, hand=${isHand}, tree=${isLog}`);
 
         // 原木用26面BFS（覆盖金合欢斜向），其他用6面
         const scanResult = bfsScan(dimension, startLocation, {
@@ -140,6 +127,7 @@ export class VeinMinerController {
         }
 
         let toBreak = scanResult.blocks.length > 1 ? scanResult.blocks.slice(1) : [];
+
         // 树木模式：自动带树叶
         let leafBlocks: { x: number; y: number; z: number }[] = [];
         if (isLog && scanResult.blocks.length >= 1) {
@@ -153,57 +141,75 @@ export class VeinMinerController {
         }
 
         const totalCount = toBreak.length + leafBlocks.length;
-        Logger.debug(`[Controller] BFS 完成: 原木 ${toBreak.length} + 树叶 ${leafBlocks.length} = ${totalCount}, 耗时 ${scanResult.elapsedMs}ms`);
+        Logger.debug(`[Controller] 找到: 原木${toBreak.length} + 树叶${leafBlocks.length} = ${totalCount}`);
 
-        // 原木按距离排序，树叶放最后
+        // 按距离排序，树叶放最后
         const sorted = sortByDistance(toBreak, startLocation);
         const sortedLeaves = sortByDistance(leafBlocks, startLocation);
-        this.scheduleDestruction(player, [...sorted, ...sortedLeaves], dimension, speed, isHand);
+
+        // ★ 一个 tick 内全部破坏 ★
+        system.run(() => {
+            let broken = 0;
+            const allBlocks = [...sorted, ...sortedLeaves];
+            for (const pos of allBlocks) {
+                if (!isHand) {
+                    const durResult = DurabilityManager.consume(player, 1);
+                    if (!durResult.success || durResult.broken) {
+                        this.feedback.warn(player, 'veinminer.msg.limitReached');
+                        break;
+                    }
+                }
+                try {
+                    dimension.runCommand(`setblock ${pos.x} ${pos.y} ${pos.z} air destroy`);
+                    broken++;
+                } catch (_e) { /* 方块已被其他方式破坏 */ }
+                PerformanceGuard.recordBlockBreak();
+            }
+
+            // 掉落物集中到挖掘位置
+            this.tryCollectDrops(player, dimension, allBlocks, startLocation);
+
+            // 反馈
+            if (broken > 0) {
+                this.feedback.info(player, 'veinminer.msg.complete', broken);
+            }
+
+            PerformanceGuard.taskFinished();
+            this.playerTasks.finish(player);
+        });
     }
 
-    private scheduleDestruction(player: Player, blocks: { x: number; y: number; z: number }[], dimension: Dimension, speed: number, isHand: boolean): void {
-        let index = 0;
-        const total = blocks.length;
+    /** 尝试将掉落物集中到挖掘位置 */
+    private tryCollectDrops(
+        player: Player,
+        dimension: Dimension,
+        brokenBlocks: { x: number; y: number; z: number }[],
+        target: Vector3
+    ): void {
+        try {
+            const enabled = player.getDynamicProperty('veinminer:collect_drops');
+            if (enabled === false) return; // 默认 true (undefined → 开启)
+        } catch { /* ignore */ }
 
-        const tick = () => {
+        // 下一 tick 收集（等物品生成）
+        system.run(() => {
             try {
-                if (index >= total) {
-                    PerformanceGuard.taskFinished();
-                    this.playerTasks.finish(player);
-                    this.feedback.info(player, 'veinminer.msg.complete', total);
-                    Logger.debug(`[Controller] 连锁采集完成: ${total} 个方块`);
-                    return;
+                let maxDist = 5;
+                for (const pos of brokenBlocks) {
+                    const dx = pos.x - target.x;
+                    const dy = pos.y - target.y;
+                    const dz = pos.z - target.z;
+                    maxDist = Math.max(maxDist, Math.sqrt(dx * dx + dy * dy + dz * dz) + 3);
                 }
-
-                for (let i = 0; i < speed && index < total; i++, index++) {
-                    const pos = blocks[index];
-                    // 空手不消耗耐久，有工具才检查耐久
-                    if (!isHand) {
-                        const durResult = DurabilityManager.consume(player, 1);
-                        if (!durResult.success || durResult.broken === true) {
-                            this.feedback.warn(player, 'veinminer.msg.limitReached');
-                            PerformanceGuard.taskFinished();
-                            this.playerTasks.finish(player);
-                            return;
-                        }
-                    }
-
-                    try {
-                        dimension.runCommand(`setblock ${pos.x} ${pos.y} ${pos.z} air destroy`);
-                    } catch (e) {
-                        // ignore
-                    }
-                    PerformanceGuard.recordBlockBreak();
+                const items = dimension.getEntities({
+                    location: target,
+                    maxDistance: maxDist,
+                    type: 'minecraft:item'
+                });
+                for (const item of items) {
+                    try { item.teleport(target, { keepVelocity: false }); } catch (_e) { /* ignore */ }
                 }
-
-                system.run(tick);
-            } catch (err) {
-                Logger.error('分帧破坏失败', err);
-                PerformanceGuard.taskFinished();
-                this.playerTasks.finish(player);
-            }
-        };
-
-        system.run(tick);
+            } catch (_e) { /* ignore */ }
+        });
     }
 }

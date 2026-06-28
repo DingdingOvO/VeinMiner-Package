@@ -18,8 +18,6 @@ import { VeinRateCommand } from './VeinRateCommand';
 export {
     CommandRegistry,
     CommandBase,
-    CommandContext,
-    CommandMeta,
     VeinCommand,
     VeinToggleCommand,
     VeinStatusCommand,
@@ -30,6 +28,7 @@ export {
     VeinResetCommand,
     VeinRateCommand
 };
+export type { CommandContext, CommandMeta };
 
 /**
  * 注册所有命令（启动时调用）

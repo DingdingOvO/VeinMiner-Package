@@ -52,8 +52,8 @@ veinminer.ui.global=全局
 veinminer.ui.adminPanel=管理面板
 
 ## ===== 消息类 =====
-veinminer.msg.toolInvalid=此方块不在白名单中。
-veinminer.msg.complete=连锁完成 +%d
+veinminer.msg.toolInvalid=必须使用合适的工具(镐/斧/锹)才能触发连锁。
+veinminer.msg.complete=连锁完成，共采集 %d 个方块。
 veinminer.msg.enabled=连锁采集已启用。
 veinminer.msg.disabled=连锁采集已禁用。
 veinminer.msg.resetDone=设置已重置。
@@ -68,7 +68,7 @@ veinminer.msg.cooldown=个人冷却中，请等待 %d 秒。
 veinminer.msg.globalCooldown=全服冷却中，请等待 %d 秒。
 veinminer.msg.serverBusy=服务器繁忙，连锁请求已拒绝。
 veinminer.msg.dimensionDisabled=当前维度已禁用连锁。
-veinminer.msg.connected=连锁 +%d
+veinminer.msg.connected=已连接 %d 个方块，开始采集...
 veinminer.msg.noPermission=你没有权限执行此操作。
 veinminer.msg.envDetected=自动检测到环境: %s
 

@@ -1,36 +1,44 @@
 {
     "namespace": "veinminer_ui",
 
-    "toggle_button@common_buttons.light_text_button": {
-        "$pressed_button_name": "button.menu_select",
-        "button_name": "veinminer.toggle",
+    "toggle_button": {
+        "type": "button",
+        "size": [32, 22],
+        "button_click_commands": ["/scriptevent veinminer:toggle"],
         "default_control_id": "veinminer_toggle_btn",
         "text": "VM",
         "font_scale_factor": 1.0,
         "color": [1.0, 1.0, 1.0],
         "shadow": true,
-        "hover_text_color": [0.4, 1.0, 0.4]
+        "hover_text_color": [0.4, 1.0, 0.4],
+        "button_mappings": [
+            { "from_button_id": "button.menu_select", "to_button_id": "veinminer_toggle_btn" }
+        ]
     },
 
-    "settings_button@common_buttons.light_text_button": {
-        "$pressed_button_name": "button.menu_select",
-        "button_name": "veinminer.settings",
+    "settings_button": {
+        "type": "button",
+        "size": [32, 22],
+        "button_click_commands": ["/scriptevent veinminer:settings"],
         "default_control_id": "veinminer_settings_btn",
         "text": "⚙",
         "font_scale_factor": 1.2,
         "color": [1.0, 1.0, 1.0],
         "shadow": true,
-        "hover_text_color": [1.0, 0.85, 0.2]
+        "hover_text_color": [1.0, 0.85, 0.2],
+        "button_mappings": [
+            { "from_button_id": "button.menu_select", "to_button_id": "veinminer_settings_btn" }
+        ]
     },
 
     "vm_panel": {
         "type": "panel",
-        "anchor_from": "bottom_right",
-        "anchor_to": "bottom_right",
-        "offset": [0, 72],
+        "anchor_from": "top_right",
+        "anchor_to": "top_right",
+        "offset": [0, 0],
         "controls": [
-            { "toggle_btn@veinminer_ui.toggle_button": { "size": [30, 22] } },
-            { "settings_btn@veinminer_ui.settings_button": { "size": [30, 22] } }
+            { "toggle_btn@veinminer_ui.toggle_button": {} },
+            { "settings_btn@veinminer_ui.settings_button": {} }
         ]
     },
 

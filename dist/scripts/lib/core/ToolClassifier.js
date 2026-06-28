@@ -3,7 +3,7 @@
  * 职责：识别与分类玩家手中的工具
  * 基于工具 typeId 关键词匹配，决定是否允许触发对应类型的连锁
  */
-import { ToolMappingConfig } from '../../config/shared/toolmapping/index.js';
+import { ToolMappingConfig } from '../../config/shared/toolmapping';
 /** 工具类型枚举 */
 export var ToolType;
 (function (ToolType) {

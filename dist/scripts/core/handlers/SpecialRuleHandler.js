@@ -3,7 +3,7 @@
  * 职责：检查特殊规则（如黑曜石需要钻石镐+、作物需要成熟等）
  */
 import { ToolClassifier } from '../../lib/core/ToolClassifier';
-import { SPECIAL_RULES } from '../../config/shared/specialrules/index.js';
+import { SPECIAL_RULES } from '../../config/shared/specialrules';
 import { Logger } from '../../utils/Logger';
 export class SpecialRuleHandler {
     check(block, player) {

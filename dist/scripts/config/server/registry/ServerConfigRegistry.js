@@ -13,9 +13,9 @@
  * - 普通玩家仅可切换开关（由 AllowPlayerToggle 决定）
  */
 import { ServerConfigStorage } from '../ServerConfigStorage';
-import { getAllSharedWhitelist } from '../../shared/whitelist/index.js';
+import { getAllSharedWhitelist } from '../../shared/whitelist';
 import { CollectionHelper } from '../../../lib/utils/CollectionHelper';
-import { DEFAULT_BLOCK_LIMITS } from '../blocklimits/index.js';
+import { DEFAULT_BLOCK_LIMITS } from '../blocklimits';
 import { MAX_VEIN_DEFAULT } from '../../shared/performance/MaxVeinDefault';
 import { Logger } from '../../../utils/Logger';
 export class ServerConfigRegistry {

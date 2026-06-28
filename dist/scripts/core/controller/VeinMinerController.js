@@ -1,13 +1,13 @@
 /**
- * VeinMinerController.js ★ 核心：连锁采集主控制器 ★
+ * VeinMinerController.ts ★ 核心：连锁采集主控制器 ★
  *
  * 逻辑：
  *   - 空手 → 白名单中的徒手可破坏方块也能连锁
- *   - 有工具 → 连锁，工具越好速度越快，消耗耐久
+ *   - 有工具 → 连锁，消耗耐久
  *   - 所有方块在一个 tick 内全部破坏（瞬间连锁）
  *   - 掉落物集中到挖掘位置（可关闭）
  */
-import { world, system } from '@minecraft/server';
+import { system } from '@minecraft/server';
 import { ConfigRegistry } from '../../config/registry/ConfigRegistry';
 import { ToolType } from '../../lib/core/ToolClassifier';
 import { bfsScan, sortByDistance, scanLeaves } from '../../lib/core/BFSAlgorithm';
@@ -18,7 +18,6 @@ import { GlobalRateLimiter } from './GlobalRateLimiter';
 import { PlayerTaskManager } from './PlayerTaskManager';
 import { Logger } from '../../utils/Logger';
 import { SCAN_TIMEOUT_MS } from '../../config/shared/performance/index.js';
-
 /** 所有原木类型ID集合 */
 const LOG_IDS = new Set([
     'minecraft:oak_log', 'minecraft:spruce_log', 'minecraft:birch_log',
@@ -26,7 +25,6 @@ const LOG_IDS = new Set([
     'minecraft:mangrove_log', 'minecraft:cherry_log',
     'minecraft:crimson_stem', 'minecraft:warped_stem'
 ]);
-
 /** 所有树叶类型ID集合 */
 const LEAF_IDS = new Set([
     'minecraft:oak_leaves', 'minecraft:spruce_leaves', 'minecraft:birch_leaves',
@@ -34,11 +32,9 @@ const LEAF_IDS = new Set([
     'minecraft:mangrove_leaves', 'minecraft:cherry_leaves',
     'minecraft:azalea_leaves', 'minecraft:azalea_leaves_flowered'
 ]);
-
 /** 树叶搜索参数 */
 const LEAF_SCAN_RADIUS = 4;
 const LEAF_MAX_COUNT = 64;
-
 export class VeinMinerController {
     static instance;
     registry = ConfigRegistry.getInstance();
@@ -53,7 +49,7 @@ export class VeinMinerController {
         return VeinMinerController.instance;
     }
     tryStart(request) {
-        const { player, startTypeId, startLocation, startDimension, tool, tier } = request;
+        const { player, startTypeId, startLocation, startDimension, tool } = request;
         try {
             if (!this.registry.getPersonalToggle(player))
                 return false;
@@ -129,7 +125,8 @@ export class VeinMinerController {
         // ★ 一个 tick 内全部破坏 ★
         system.run(() => {
             let broken = 0;
-            for (const pos of [...sorted, ...sortedLeaves]) {
+            const allBlocks = [...sorted, ...sortedLeaves];
+            for (const pos of allBlocks) {
                 if (!isHand) {
                     const durResult = DurabilityManager.consume(player, 1);
                     if (!durResult.success || durResult.broken) {
@@ -140,11 +137,12 @@ export class VeinMinerController {
                 try {
                     dimension.runCommand(`setblock ${pos.x} ${pos.y} ${pos.z} air destroy`);
                     broken++;
-                } catch (e) { }
+                }
+                catch (_e) { /* 方块已被其他方式破坏 */ }
                 PerformanceGuard.recordBlockBreak();
             }
-            // 掉落物集中
-            this.tryCollectDrops(player, dimension, [...sorted, ...sortedLeaves], startLocation);
+            // 掉落物集中到挖掘位置
+            this.tryCollectDrops(player, dimension, allBlocks, startLocation);
             // 反馈
             if (broken > 0) {
                 this.feedback.info(player, 'veinminer.msg.complete', broken);
@@ -157,8 +155,10 @@ export class VeinMinerController {
     tryCollectDrops(player, dimension, brokenBlocks, target) {
         try {
             const enabled = player.getDynamicProperty('veinminer:collect_drops');
-            if (enabled === false) return; // 默认 true (undefined → 开启)
-        } catch { }
+            if (enabled === false)
+                return; // 默认 true (undefined → 开启)
+        }
+        catch { /* ignore */ }
         // 下一 tick 收集（等物品生成）
         system.run(() => {
             try {
@@ -175,9 +175,13 @@ export class VeinMinerController {
                     type: 'minecraft:item'
                 });
                 for (const item of items) {
-                    try { item.teleport(target, { keepVelocity: false }); } catch (e) { }
+                    try {
+                        item.teleport(target, { keepVelocity: false });
+                    }
+                    catch (_e) { /* ignore */ }
                 }
-            } catch (e) { }
+            }
+            catch (_e) { /* ignore */ }
         });
     }
 }

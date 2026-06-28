@@ -3,7 +3,7 @@
  * 职责：个人白名单管理器，对外提供业务接口
  */
 import { PersonalBlockListStorage } from './PersonalBlockListStorage';
-import { getAllSharedWhitelist } from '../../../../config/shared/whitelist/index.js';
+import { getAllSharedWhitelist } from '../../../../config/shared/whitelist';
 import { CollectionHelper } from '../../../../lib/utils/CollectionHelper';
 export class PersonalBlockListManager {
     storage = new PersonalBlockListStorage();

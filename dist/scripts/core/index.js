@@ -1,5 +1,5 @@
 /**
  * core/index.ts
  */
-export * from './controller/index.js';
-export * from './handlers/index.js';
+export * from './controller';
+export * from './handlers';

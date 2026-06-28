@@ -1,5 +1,5 @@
 /**
  * config/client/index.ts
  */
-export * from './personal/index.js';
+export * from './personal';
 export * from './registry/ClientConfigRegistry';

@@ -7,13 +7,13 @@ const DEFAULT_DIRECTIONS = [
     { x: 0, y: 1, z: 0 }, { x: 0, y: -1, z: 0 },
     { x: 0, y: 0, z: 1 }, { x: 0, y: 0, z: -1 }
 ];
-
 /** 26面方向（含对角线），用于原木连锁以覆盖金合欢等斜向生长的树 */
 const DIRECTIONS_26 = [];
 for (let dx = -1; dx <= 1; dx++) {
     for (let dy = -1; dy <= 1; dy++) {
         for (let dz = -1; dz <= 1; dz++) {
-            if (dx === 0 && dy === 0 && dz === 0) continue;
+            if (dx === 0 && dy === 0 && dz === 0)
+                continue;
             DIRECTIONS_26.push({ x: dx, y: dy, z: dz });
         }
     }
@@ -81,7 +81,6 @@ export function manhattanDistance(a, b) {
 export function sortByDistance(blocks, origin) {
     return [...blocks].sort((a, b) => manhattanDistance(a, origin) - manhattanDistance(b, origin));
 }
-
 /**
  * 树叶扫描：在已找到的原木位置周围搜索树叶方块
  * @param dimension 维度
@@ -95,27 +94,33 @@ export function scanLeaves(dimension, logPositions, leafTypeIds, maxRadius, maxL
     const leaves = [];
     const visited = new Set();
     for (const log of logPositions) {
-        if (leaves.length >= maxLeaves) break;
+        if (leaves.length >= maxLeaves)
+            break;
         for (let dx = -maxRadius; dx <= maxRadius; dx++) {
             for (let dy = -maxRadius; dy <= maxRadius; dy++) {
                 for (let dz = -maxRadius; dz <= maxRadius; dz++) {
-                    if (leaves.length >= maxLeaves) break;
+                    if (leaves.length >= maxLeaves)
+                        break;
                     const dist = Math.abs(dx) + Math.abs(dy) + Math.abs(dz);
-                    if (dist > maxRadius || dist === 0) continue;
+                    if (dist > maxRadius || dist === 0)
+                        continue;
                     const nx = log.x + dx;
                     const ny = log.y + dy;
                     const nz = log.z + dz;
                     const key = coordKey(nx, ny, nz);
-                    if (visited.has(key)) continue;
+                    if (visited.has(key))
+                        continue;
                     visited.add(key);
                     // 跳过已知原木位置
-                    if (logPositions.some(p => p.x === nx && p.y === ny && p.z === nz)) continue;
+                    if (logPositions.some(p => p.x === nx && p.y === ny && p.z === nz))
+                        continue;
                     try {
                         const block = dimension.getBlock({ x: nx, y: ny, z: nz });
                         if (block && leafTypeIds.has(block.typeId)) {
                             leaves.push({ x: nx, y: ny, z: nz });
                         }
-                    } catch { /* ignore */ }
+                    }
+                    catch { /* ignore */ }
                 }
             }
         }

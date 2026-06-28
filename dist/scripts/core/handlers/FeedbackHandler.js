@@ -1,7 +1,7 @@
 /**
  * FeedbackHandler.ts
  * 职责：向玩家发送操作反馈（actionbar 显示在快捷栏上方）
- * 
+ *
  * actionbar 只显示一行，会被覆盖，所以：
  * - 连锁过程中不打扰（已移除 connected 消息）
  * - 只在完成/出错时显示简洁的一行提示

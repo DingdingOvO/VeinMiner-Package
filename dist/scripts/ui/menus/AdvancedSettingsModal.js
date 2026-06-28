@@ -1,40 +1,30 @@
 /**
- * AdvancedSettingsModal - 设置面板
+ * AdvancedSettingsModal.ts
+ * 职责：高级设置弹窗（调整最大连锁数等）
  */
 import { ModalFormData } from '@minecraft/server-ui';
 import { ConfigRegistry } from '../../config/registry/ConfigRegistry';
 import { I18n } from '../../utils/I18n';
 import { Logger } from '../../utils/Logger';
-const TAG = '§8[VM]§r';
+import { SLIDER_MIN, SLIDER_MAX } from '../../config/shared/ui';
 export class AdvancedSettingsModal {
     static async show(player) {
         try {
             const registry = ConfigRegistry.getInstance();
             const clientRegistry = registry.getClientRegistry();
-            const currentMax = clientRegistry.getMaxVeinManager().get(player);
-            // 掉落物集中开关
-            let collectDrops = true;
-            try { collectDrops = player.getDynamicProperty('veinminer:collect_drops') ?? true; } catch { }
+            const current = clientRegistry.getMaxVeinManager().get(player);
             const form = new ModalFormData();
-            form.title('§e⚙ 设置');
-            form.slider('最大连锁数', 1, 256, { defaultValue: currentMax, stepSize: 1 });
-            form.toggle('掉落物集中到挖掘格', collectDrops);
+            form.title(I18n.for(player, 'veinminer.ui.maxBlocks'));
+            form.slider(I18n.for(player, 'veinminer.ui.maxBlocks'), SLIDER_MIN, SLIDER_MAX, { defaultValue: current });
             const response = await form.show(player);
-            if (response.canceled) return;
-            // 保存最大连锁数
-            const maxVal = response.formValues?.[0];
-            if (maxVal !== undefined) {
-                clientRegistry.getMaxVeinManager().set(player, maxVal);
-            }
-            // 保存掉落物设置
-            const collectVal = response.formValues?.[1];
-            if (collectVal !== undefined) {
-                try { player.setDynamicProperty('veinminer:collect_drops', collectVal); } catch { }
-            }
-            player.onScreenDisplay.setActionBar(`${TAG} §a设置已保存`);
+            if (response.canceled)
+                return;
+            const value = response.formValues?.[0];
+            clientRegistry.getMaxVeinManager().set(player, value);
+            player.sendMessage(I18n.for(player, 'veinminer.cmd.success'));
         }
         catch (err) {
-            Logger.error('Settings 显示失败', err);
+            Logger.error('AdvancedSettingsModal 显示失败', err);
         }
     }
 }

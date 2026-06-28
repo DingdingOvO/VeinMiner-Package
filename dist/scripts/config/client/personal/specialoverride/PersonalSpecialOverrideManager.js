@@ -3,7 +3,7 @@
  * 职责：个人特殊规则覆盖管理器
  */
 import { PersonalSpecialOverrideStorage } from './PersonalSpecialOverrideStorage';
-import { SPECIAL_RULES } from '../../../../config/shared/specialrules/index.js';
+import { SPECIAL_RULES } from '../../../../config/shared/specialrules';
 export class PersonalSpecialOverrideManager {
     storage = new PersonalSpecialOverrideStorage();
     /**
