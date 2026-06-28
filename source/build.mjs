@@ -1,7 +1,7 @@
 /**
  * build.mjs — VeinMiner 构建脚本（纯行为包）
  *
- * 输出 VeinMiner.mcpack（单行为包 zip）
+ * 输出 VeinMiner.mcaddon
  */
 
 import { execSync } from 'child_process';
@@ -43,15 +43,15 @@ function copyStatics() {
 }
 
 /**
- * 打包 .mcpack
+ * 打包 .mcaddon
  */
-function createMcpack() {
-    const mcpackPath = path.join(ROOT_DIR, `${PACK_NAME}.mcpack`);
-    if (fs.existsSync(mcpackPath)) fs.unlinkSync(mcpackPath);
+function createMcaddon() {
+    const mcaddonPath = path.join(ROOT_DIR, `${PACK_NAME}.mcaddon`);
+    if (fs.existsSync(mcaddonPath)) fs.unlinkSync(mcaddonPath);
 
-    execSync(`cd "${BUILD_DIR}" && zip -r "${mcpackPath}" .`, { stdio: 'pipe' });
-    const size = (fs.statSync(mcpackPath).size / 1024).toFixed(1);
-    console.log(`  ✓ ${PACK_NAME}.mcpack (${size} KB)`);
+    execSync(`cd "${BUILD_DIR}" && zip -r "${mcaddonPath}" .`, { stdio: 'pipe' });
+    const size = (fs.statSync(mcaddonPath).size / 1024).toFixed(1);
+    console.log(`  ✓ ${PACK_NAME}.mcaddon (${size} KB)`);
 }
 
 /**
@@ -86,10 +86,10 @@ if (!fs.existsSync(BUILD_DIR)) {
 }
 
 copyStatics();
-createMcpack();
+createMcaddon();
 syncToDist();
 
 console.log('\n  ✓ 构建完成！');
-console.log(`    dist/                  — 预构建文件`);
-console.log(`    ../VeinMiner.mcpack    — 行为包，可直接导入 Minecraft`);
+console.log(`    dist/                    — 预构建文件`);
+console.log(`    ../VeinMiner.mcaddon      — 行为包，可直接导入 Minecraft`);
 console.log('');
