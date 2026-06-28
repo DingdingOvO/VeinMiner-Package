@@ -1,12 +1,10 @@
 /**
- * main.ts - VeinMiner 行为包入口
+ * main.ts - VeinMiner 纯行为包入口
  *
  * 触发方式：
  *   - 潜行 + 挖方块 → 连锁采集
- *   - HUD 按钮（屏幕右上角）：
- *       VM  → 直接开关连锁
- *       ⚙   → 打开设置表单
- *   HUD 按钮通过 /scriptevent 与服务端通信
+ *   - /scriptevent veinminer:toggle → 开关连锁
+ *   - /scriptevent veinminer:settings → 打开设置表单 (server-ui)
  */
 import { world, system, Player, ScriptEventSource } from '@minecraft/server';
 import { ModalFormData } from '@minecraft/server-ui';
@@ -35,7 +33,7 @@ function main() {
             Logger.tick(tickCount);
             PerformanceGuard.onTick();
         }, 1);
-        // ★ HUD 按钮监听：通过 scriptEvent 接收客户端 UI 按钮点击 ★
+        // ★ scriptEvent 监听：接收 /scriptevent 命令 ★
         try {
             system.afterEvents.scriptEventReceive.subscribe((event) => {
                 // 只接受来自玩家的 scriptevent
@@ -51,7 +49,7 @@ function main() {
                     handleSettings(entity);
                 }
             }, { namespaces: ['veinminer'] });
-            Logger.info('HUD 按钮监听已注册 (scriptEventReceive)');
+            Logger.info('scriptEvent 监听已注册');
         }
         catch (err) {
             Logger.error('scriptEventReceive 注册失败', err);
@@ -59,8 +57,8 @@ function main() {
         Logger.info('=======================================');
         Logger.info('  VeinMiner 启动完成');
         Logger.info('  潜行 + 挖方块 → 连锁采集');
-        Logger.info('  HUD [VM] 按钮 → 开关连锁');
-        Logger.info('  HUD [⚙] 按钮 → 设置');
+        Logger.info('  /scriptevent veinminer:toggle → 开关');
+        Logger.info('  /scriptevent veinminer:settings → 设置');
         Logger.info('=======================================');
         // 延迟初始化（避免 early execution）
         system.run(() => {
@@ -77,7 +75,7 @@ function main() {
                 Logger.error('配置加载失败(延迟)', e);
             }
             for (const player of world.getAllPlayers()) {
-                player.onScreenDisplay.setActionBar(`${TAG} §a已加载 §7| §f潜行+挖掘 连锁 §7| §fHUD按钮 开关/设置`);
+                player.onScreenDisplay.setActionBar(`${TAG} §a已加载 §7| §f潜行+挖掘 连锁 §7| §f/scriptevent veinminer:toggle|settings`);
             }
         });
     }
@@ -86,9 +84,9 @@ function main() {
     }
 }
 // ============================================================
-// HUD 按钮处理
+// scriptEvent 命令处理
 // ============================================================
-/** VM 按钮：直接切换开关 */
+/** /scriptevent veinminer:toggle → 切换开关 */
 function handleToggle(player) {
     try {
         const registry = ConfigRegistry.getInstance();
@@ -101,7 +99,7 @@ function handleToggle(player) {
         Logger.error('切换开关失败', err);
     }
 }
-/** ⚙ 按钮：直接打开设置表单（ModalFormData） */
+/** /scriptevent veinminer:settings → 打开设置表单 (server-ui ModalFormData) */
 async function handleSettings(player) {
     try {
         // 读当前值
