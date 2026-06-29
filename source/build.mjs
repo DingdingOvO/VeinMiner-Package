@@ -18,7 +18,7 @@ const PACK_VERSION = process.env.PACK_VERSION || 'v0.1.0-alpha';
 const PACK_NAME = `VeinMiner-${PACK_VERSION}`;
 
 // 需要复制到 build/ 的静态文件（不经过 TS 编译）
-const STATIC_FILES = ['manifest.json'];
+const STATIC_FILES = ['manifest.json', 'pack_icon.png'];
 const STATIC_DIRS = ['texts'];
 
 /**
