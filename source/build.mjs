@@ -1,7 +1,7 @@
 /**
  * build.mjs — VeinMiner 构建脚本（纯行为包）
  *
- * 输出 VeinMiner.mcaddon
+ * 输出 VeinMiner-v0.1.0-alpha.mcaddon
  */
 
 import { execSync } from 'child_process';
@@ -14,7 +14,7 @@ const SOURCE_DIR = __dirname;
 const BUILD_DIR = path.join(SOURCE_DIR, 'build');
 const DIST_DIR = path.join(__dirname, '..', 'dist');
 const ROOT_DIR = path.join(__dirname, '..');
-const PACK_NAME = 'VeinMiner';
+const PACK_NAME = 'VeinMiner-v0.1.0-alpha';
 
 // 需要复制到 build/ 的静态文件（不经过 TS 编译）
 const STATIC_FILES = ['manifest.json'];
