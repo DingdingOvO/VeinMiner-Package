@@ -4,10 +4,10 @@
  * 输出 VeinMiner-v0.1.0-alpha.mcaddon
  */
 
-import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import zlib from 'zlib';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SOURCE_DIR = __dirname;
