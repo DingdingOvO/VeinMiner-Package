@@ -43,27 +43,12 @@ function copyStatics() {
     }
 }
 
-/**
- * 打包 .mcaddon（使用 Python zipfile，兼容 Minecraft）
- */
 function createMcaddon() {
     const mcaddonPath = path.join(ROOT_DIR, `${PACK_NAME}.mcaddon`);
     if (fs.existsSync(mcaddonPath)) fs.unlinkSync(mcaddonPath);
 
-    const tmpScript = path.join(SOURCE_DIR, '_pack.py');
-    fs.writeFileSync(tmpScript, [
-        'import zipfile, os, sys',
-        `with zipfile.ZipFile(${JSON.stringify(mcaddonPath)}, 'w', zipfile.ZIP_DEFLATED) as zf:`,
-        `    for root, dirs, files in os.walk(${JSON.stringify(BUILD_DIR)}):`,
-        '        for f in files:',
-        '            full = os.path.join(root, f)',
-        `            arcname = os.path.relpath(full, ${JSON.stringify(BUILD_DIR)})`,
-        '            zf.write(full, arcname)',
-        `print(f"{os.path.getsize(${JSON.stringify(mcaddonPath)}) / 1024:.1f}")`,
-    ].join('\n'));
-
-    const size = execSync(`python3 "${tmpScript}"`, { encoding: 'utf-8' }).trim();
-    fs.unlinkSync(tmpScript);
+    execSync(`cd "${BUILD_DIR}" && zip -r "${mcaddonPath}" .`, { stdio: 'pipe' });
+    const size = (fs.statSync(mcaddonPath).size / 1024).toFixed(1);
     console.log(`  ✓ ${PACK_NAME}.mcaddon (${size} KB)`);
 }
 
