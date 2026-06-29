@@ -14,7 +14,8 @@ const SOURCE_DIR = __dirname;
 const BUILD_DIR = path.join(SOURCE_DIR, 'build');
 const DIST_DIR = path.join(__dirname, '..', 'dist');
 const ROOT_DIR = path.join(__dirname, '..');
-const PACK_NAME = 'VeinMiner-v0.1.0-alpha';
+const PACK_VERSION = process.env.PACK_VERSION || 'v0.1.0-alpha';
+const PACK_NAME = `VeinMiner-${PACK_VERSION}`;
 
 // 需要复制到 build/ 的静态文件（不经过 TS 编译）
 const STATIC_FILES = ['manifest.json'];
@@ -103,5 +104,5 @@ syncToDist();
 
 console.log('\n  ✓ 构建完成！');
 console.log(`    dist/                        — 预构建文件`);
-console.log(`    ../VeinMiner-v0.1.0-alpha.mcaddon — 行为包，可直接导入 Minecraft`);
+console.log(`    ../${PACK_NAME}.mcaddon — 行为包，可直接导入 Minecraft`);
 console.log('');

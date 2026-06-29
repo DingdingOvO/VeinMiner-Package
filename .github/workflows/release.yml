@@ -12,7 +12,7 @@ on:
         default: 'v0.1.0-alpha'
 
 jobs:
- build:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -40,13 +40,10 @@ jobs:
             echo "tag=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Rename .mcaddon to match version
-        working-directory: source
+      - name: Rename and prepare asset
         shell: bash
         run: |
-          VERSION="${{ steps.version.outputs.tag }}"
-          mv "../VeinMiner-v0.1.0-alpha.mcaddon" "../VeinMiner-${VERSION}.mcaddon"
-          echo "FILE=VeinMiner-${VERSION}.mcaddon" >> $GITHUB_ENV
+          mv VeinMiner-v0.1.0-alpha.mcaddon "VeinMiner-${{ steps.version.outputs.tag }}.mcaddon"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -62,7 +59,6 @@ jobs:
             - 中/英/繁中三语支持
           draft: false
           prerelease: ${{ contains(steps.version.outputs.tag, 'alpha') || contains(steps.version.outputs.tag, 'beta') }}
-          files: |
-            VeinMiner-${{ steps.version.outputs.tag }}.mcaddon
+          files: VeinMiner-${{ steps.version.outputs.tag }}.mcaddon
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
