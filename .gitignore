@@ -6,4 +6,6 @@ dist/
 *.js.map
 .DS_Store
 Thumbs.db
-package-lock.json
+package-lock.json.env
+skills/
+tool-results/

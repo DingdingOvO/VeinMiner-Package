@@ -26,10 +26,6 @@ jobs:
         working-directory: source
         run: npm install
 
-      - name: Build .mcaddon
-        working-directory: source
-        run: npm run build
-
       - name: Get version from tag
         id: version
         shell: bash
@@ -40,10 +36,11 @@ jobs:
             echo "tag=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Rename and prepare asset
-        shell: bash
-        run: |
-          mv VeinMiner-v0.1.0-alpha.mcaddon "VeinMiner-${{ steps.version.outputs.tag }}.mcaddon"
+      - name: Build .mcaddon
+        working-directory: source
+        run: npm run build
+        env:
+          PACK_VERSION: ${{ steps.version.outputs.tag }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
