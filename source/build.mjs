@@ -4,10 +4,10 @@
  * 输出 VeinMiner-v0.1.0-alpha.mcaddon
  */
 
+import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import zlib from 'zlib';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SOURCE_DIR = __dirname;
@@ -43,14 +43,26 @@ function copyStatics() {
 }
 
 /**
- * 打包 .mcaddon
+ * 打包 .mcaddon（使用 Python zipfile，兼容 Minecraft）
  */
 function createMcaddon() {
     const mcaddonPath = path.join(ROOT_DIR, `${PACK_NAME}.mcaddon`);
     if (fs.existsSync(mcaddonPath)) fs.unlinkSync(mcaddonPath);
 
-    execSync(`cd "${BUILD_DIR}" && zip -r "${mcaddonPath}" .`, { stdio: 'pipe' });
-    const size = (fs.statSync(mcaddonPath).size / 1024).toFixed(1);
+    const tmpScript = path.join(SOURCE_DIR, '_pack.py');
+    fs.writeFileSync(tmpScript, [
+        'import zipfile, os, sys',
+        `with zipfile.ZipFile(${JSON.stringify(mcaddonPath)}, 'w', zipfile.ZIP_DEFLATED) as zf:`,
+        `    for root, dirs, files in os.walk(${JSON.stringify(BUILD_DIR)}):`,
+        '        for f in files:',
+        '            full = os.path.join(root, f)',
+        `            arcname = os.path.relpath(full, ${JSON.stringify(BUILD_DIR)})`,
+        '            zf.write(full, arcname)',
+        `print(f"{os.path.getsize(${JSON.stringify(mcaddonPath)}) / 1024:.1f}")`,
+    ].join('\n'));
+
+    const size = execSync(`python3 "${tmpScript}"`, { encoding: 'utf-8' }).trim();
+    fs.unlinkSync(tmpScript);
     console.log(`  ✓ ${PACK_NAME}.mcaddon (${size} KB)`);
 }
 
@@ -90,6 +102,6 @@ createMcaddon();
 syncToDist();
 
 console.log('\n  ✓ 构建完成！');
-console.log(`    dist/                    — 预构建文件`);
+console.log(`    dist/                        — 预构建文件`);
 console.log(`    ../VeinMiner-v0.1.0-alpha.mcaddon — 行为包，可直接导入 Minecraft`);
 console.log('');
