@@ -91,5 +91,5 @@ syncToDist();
 
 console.log('\n  ✓ 构建完成！');
 console.log(`    dist/                    — 预构建文件`);
-console.log(`    ../VeinMiner.mcaddon      — 行为包，可直接导入 Minecraft`);
+console.log(`    ../VeinMiner-v0.1.0-alpha.mcaddon — 行为包，可直接导入 Minecraft`);
 console.log('');
