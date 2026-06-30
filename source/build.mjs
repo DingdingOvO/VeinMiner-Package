@@ -45,9 +45,18 @@ function copyStatics() {
 
 function createMcaddon() {
     const mcaddonPath = path.join(ROOT_DIR, `${PACK_NAME}.mcaddon`);
+    const mcpackPath = path.join(BUILD_DIR, 'VeinMiner.mcpack');
     if (fs.existsSync(mcaddonPath)) fs.unlinkSync(mcaddonPath);
 
-    execSync(`cd "${BUILD_DIR}" && zip -r "${mcaddonPath}" .`, { stdio: 'pipe' });
+    // 1. 先把 build/ 内容打成 .mcpack（在 build/ 内部）
+    execSync(`cd "${BUILD_DIR}" && zip -r VeinMiner.mcpack manifest.json pack_icon.png scripts/ texts/`, { stdio: 'pipe' });
+
+    // 2. 再把 .mcpack 包成 .mcaddon（输出到仓库根目录）
+    execSync(`cd "${BUILD_DIR}" && zip -r "${mcaddonPath}" VeinMiner.mcpack`, { stdio: 'pipe' });
+
+    // 3. 删除中间 .mcpack
+    fs.unlinkSync(mcpackPath);
+
     const size = (fs.statSync(mcaddonPath).size / 1024).toFixed(1);
     console.log(`  ✓ ${PACK_NAME}.mcaddon (${size} KB)`);
 }
