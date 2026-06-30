@@ -5,12 +5,13 @@
  *   - 每个玩家独立队列（Map<playerId, state>），多人互不影响
  *   - 同一玩家挖新矿时直接替换队列，旧任务立即作废
  *   - 每 tick 执行 BATCH_SIZE 个方块，不卡服
- *   - 耐久逐个消耗，损坏立即停止
+ *   - 使用 player.runCommand 继承时运/精准采集等附魔
+ *   - 耐久由游戏引擎自动处理，工具坏了 runCommand 自然抛错
+ *   - 每 tick 重新查找玩家，防止引用失效
  */
 
-import { Player, Dimension, Vector3, system } from '@minecraft/server';
+import { world, system, Player, Dimension, Vector3 } from '@minecraft/server';
 import { Pos, sortByDistance } from './Scanner';
-import { getHeldTool, consumeDurability } from '../utils';
 
 const TAG = '§8[VM]§r';
 const BATCH_SIZE = 20;
@@ -25,7 +26,6 @@ interface QueueState {
     broken: number;
     origin: Vector3;
     collectDrops: boolean;
-    tool: ReturnType<typeof getHeldTool>;
 }
 
 /** playerId → 该玩家的破坏队列 */
@@ -41,7 +41,7 @@ const playerQueues = new Map<string, QueueState>();
  */
 export function executeBreak(
     player: Player,
-    dimension: Dimension,
+    _dimension: Dimension,
     blocks: Pos[],
     leafBlocks: Pos[],
     origin: Vector3,
@@ -59,14 +59,13 @@ export function executeBreak(
         broken: 0,
         origin,
         collectDrops,
-        tool: getHeldTool(player),
     });
 
     // 如果该玩家没有在跑的循环，启动一个
     const state = playerQueues.get(pid)!;
     if (!state.running) {
         state.running = true;
-        processTick(player, dimension, pid);
+        processTick(pid);
     }
 }
 
@@ -74,12 +73,19 @@ export function executeBreak(
 //  内部：每 tick 处理一批
 // ═══════════════════════════════════════
 
-function processTick(player: Player, dimension: Dimension, pid: string): void {
+function processTick(pid: string): void {
     const state = playerQueues.get(pid);
 
     // 队列被清空（玩家下线或被替换后清理）
     if (!state || state.blocks.length === 0) {
-        finishPlayer(pid, player, state);
+        finishPlayer(pid, state);
+        return;
+    }
+
+    // 重新查找玩家（防止引用失效）
+    const player = world.getPlayers().find(p => p.id === pid);
+    if (!player) {
+        playerQueues.delete(pid);
         return;
     }
 
@@ -87,29 +93,22 @@ function processTick(player: Player, dimension: Dimension, pid: string): void {
     const batch = state.blocks.splice(0, BATCH_SIZE);
 
     for (const pos of batch) {
-        // 耐久检查
-        if (state.tool.durability) {
-            const isBroken = consumeDurability(state.tool);
-            if (isBroken) {
-                player.onScreenDisplay.setActionBar(`${TAG} §c工具已损坏`);
-                state.blocks = []; // 清空队列，下次 tick 会结束
-                break;
-            }
-        }
-
         try {
-            dimension.runCommand(`setblock ${pos.x} ${pos.y} ${pos.z} air destroy`);
+            // player.runCommand 继承时运/精准采集附魔，耐久由游戏引擎消耗
+            player.runCommand(`setblock ${pos.x} ${pos.y} ${pos.z} air destroy`);
             state.broken++;
         } catch {
-            // 方块已被其他方式破坏
+            // 工具损坏 / 方块已被破坏 / 玩家下线 → 停止
+            state.blocks = [];
+            break;
         }
     }
 
     // 还有剩余 → 下一 tick 继续
     if (state.blocks.length > 0) {
-        system.run(() => processTick(player, dimension, pid));
+        system.run(() => processTick(pid));
     } else {
-        finishPlayer(pid, player, state);
+        finishPlayer(pid, state);
     }
 }
 
@@ -117,14 +116,17 @@ function processTick(player: Player, dimension: Dimension, pid: string): void {
 //  内部：玩家任务完成/中断
 // ═══════════════════════════════════════
 
-function finishPlayer(pid: string, player: Player, state: QueueState | undefined): void {
+function finishPlayer(pid: string, state: QueueState | undefined): void {
     playerQueues.delete(pid);
 
     if (state && state.broken > 0) {
-        player.onScreenDisplay.setActionBar(`${TAG} §a+${state.broken} 方块`);
+        const player = world.getPlayers().find(p => p.id === pid);
+        if (player) {
+            player.onScreenDisplay.setActionBar(`${TAG} §a+${state.broken} 方块`);
 
-        if (state.collectDrops) {
-            collectDropsToOrigin(player.dimension, state.origin);
+            if (state.collectDrops) {
+                collectDropsToOrigin(player.dimension, state.origin);
+            }
         }
     }
 }
