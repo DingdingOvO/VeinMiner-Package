@@ -1,13 +1,17 @@
 /**
  * ChatHandler.ts — 聊天命令拦截
  *
- * 拦截 #vm 开头的聊天消息：
+ * 2.8.0 稳定版没有 chatSend 事件，改用 afterEvents.chatSend：
+ *   - 能监听到聊天消息
+ *   - 无法取消（消息会显示在聊天框）
+ *   - 用 ActionBar 反馈，玩家体验仍然可用
+ *
+ * 如果 afterEvents.chatSend 也不存在则静默跳过。
+ *
+ * 命令：
  *   #vm        → 打开设置
  *   #vm on     → 开启连锁
  *   #vm off    → 关闭连锁
- *
- * 注意：chatSend 在 @minecraft/server 2.8.0 稳定版类型中未导出，
- * 但运行时可用，此处用类型断言访问。
  */
 
 import { world } from '@minecraft/server';
@@ -20,34 +24,21 @@ import { showSettings } from './SettingsForm';
 const TAG = '§8[VM]§r';
 
 // ═══════════════════════════════════════
-//  类型（运行时存在但 2.8.0 稳定版 d.ts 未导出）
-// ═══════════════════════════════════════
-
-interface ChatSendBeforeEvent {
-    message: string;
-    sender: import('@minecraft/server').Player;
-    cancel: boolean;
-}
-
-interface ChatSendBeforeEventSignal {
-    subscribe(callback: (event: ChatSendBeforeEvent) => void): void;
-}
-
-// ═══════════════════════════════════════
 //  注册
 // ═══════════════════════════════════════
 
 export function registerChatHandler(): void {
-    const beforeEvents = world.beforeEvents as unknown as {
-        chatSend: ChatSendBeforeEventSignal;
-    };
+    const afterEvents = world.afterEvents as unknown as Record<string, { subscribe: (cb: (e: { message: string; sender: import('@minecraft/server').Player }) => void) => void }>;
+    const chatSend = afterEvents['chatSend'];
 
-    beforeEvents.chatSend.subscribe((event) => {
+    if (!chatSend) {
+        console.warn('[VM] chatSend 事件不可用，跳过聊天命令注册。请使用 /scriptevent veinminer:settings');
+        return;
+    }
+
+    chatSend.subscribe((event) => {
         const message = event.message.trim();
         if (!message.startsWith(CHAT_PREFIX)) return;
-
-        // 取消聊天消息发送（不显示在聊天框）
-        event.cancel = true;
 
         const sender = event.sender;
         const args = message.slice(CHAT_PREFIX.length).trim();
