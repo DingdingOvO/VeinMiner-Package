@@ -1,23 +1,60 @@
 /**
  * build.mjs — VeinMiner 构建脚本（纯行为包）
  *
- * 流程：tsc 编译 → 复制静态文件 → zip 成 .mcpack → 再套 .mcaddon
- * .mcpack = 行为包内容直接 zip
- * .mcaddon = 包含 .mcpack 的 zip（游戏用这个导入）
+ * 流程：esbuild 打包单文件 → 复制静态文件 → zip 成 .mcpack → 再套 .mcaddon
+ *
+ * 为什么用 esbuild 而不是 tsc 多文件：
+ *   Minecraft 脚本引擎不支持 Node 风格的 index.js 隐式解析，
+ *   多文件模块导入（import from './core'）会报 "Import not found"。
+ *   esbuild 打包成单个 main.js 彻底避免此问题。
  */
 
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
+import { build as esbuild } from 'esbuild';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SOURCE_DIR = __dirname;
 const BUILD_DIR = path.join(SOURCE_DIR, 'build');
+const BUILD_SCRIPTS_DIR = path.join(BUILD_DIR, 'scripts');
 const OUTPUT_DIR = path.join(__dirname, '..', 'upload');
 
-// 需要复制到 build/ 的静态文件（不经过 TS 编译）
+// 需要复制到 build/ 的静态文件（不经过编译）
 const STATIC_FILES = ['manifest.json', 'pack_icon.png'];
+
+const ENTRY = path.join(SOURCE_DIR, 'scripts', 'main.ts');
+
+// ═══════════════════════════════════════
+//  esbuild 打包
+// ═══════════════════════════════════════
+
+async function bundleWithEsbuild() {
+    console.log('  esbuild 打包中...');
+
+    if (fs.existsSync(BUILD_SCRIPTS_DIR)) {
+        fs.rmSync(BUILD_SCRIPTS_DIR, { recursive: true, force: true });
+    }
+    fs.mkdirSync(BUILD_SCRIPTS_DIR, { recursive: true });
+
+    await esbuild({
+        entryPoints: [ENTRY],
+        bundle: true,
+        outfile: path.join(BUILD_SCRIPTS_DIR, 'main.js'),
+        format: 'esm',
+        target: 'es2022',
+        platform: 'neutral',
+        minify: false,
+        sourcemap: false,
+        external: ['@minecraft/server', '@minecraft/server-ui'],
+        // 保留注释用于调试
+        legalComments: 'inline',
+    });
+
+    const size = (fs.statSync(path.join(BUILD_SCRIPTS_DIR, 'main.js')).size / 1024).toFixed(1);
+    console.log(`  ✓ main.js (${size} KB)`);
+}
 
 // ═══════════════════════════════════════
 //  复制静态文件
@@ -84,12 +121,7 @@ if (args.includes('--clean')) {
 
 console.log('\n═══ VeinMiner Build (行为包) ═══\n');
 
-// 检查 build/ 是否存在（需要先 tsc 编译）
-if (!fs.existsSync(BUILD_DIR)) {
-    console.error('  ✗ build/ 不存在，请先运行: npm run build');
-    process.exit(1);
-}
-
+bundleWithEsbuild();
 copyStatics();
 createPackages();
 
