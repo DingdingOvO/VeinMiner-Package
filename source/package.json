@@ -12,11 +12,11 @@
         "clean": "node -e \"require('fs').rmSync('build', {recursive: true, force: true})\" && echo 'Cleaned build/'"
     },
     "devDependencies": {
+        "@minecraft/common": "^1.2.0",
         "@minecraft/server": "2.2.0-beta.1.21.100-stable",
         "@minecraft/server-ui": "2.1.0-beta.1.21.100-stable",
-        "@minecraft/common": "^1.2.0",
         "@types/node": "^22.0.0",
-        "typescript": "^5.6.0"
+        "typescript": "^5.9.3"
     },
     "engines": {
         "node": ">=18.0.0"
