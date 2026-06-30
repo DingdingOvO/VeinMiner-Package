@@ -75,13 +75,7 @@ function collectDropsToOrigin(
 ): void {
     system.run(() => {
         try {
-            let maxDist = 5;
-            for (const p of positions) {
-                const dx = p.x - target.x;
-                const dy = p.y - target.y;
-                const dz = p.z - target.z;
-                maxDist = Math.max(maxDist, Math.sqrt(dx * dx + dy * dy + dz * dz) + 3);
-            }
+            const maxDist = 6;
 
             const items = dimension.getEntities({
                 location: target,

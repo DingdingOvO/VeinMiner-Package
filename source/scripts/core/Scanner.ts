@@ -42,8 +42,8 @@ export interface ScanResult {
 //  BFS 扫描
 // ═══════════════════════════════════════
 
-function posKey(x: number, y: number, z: number): string {
-    return `${x},${y},${z}`;
+function posKey(x: number, y: number, z: number): bigint {
+    return (BigInt(x) << 64n) ^ (BigInt(y) << 32n) ^ BigInt(z);
 }
 
 /**
@@ -69,7 +69,7 @@ export function bfsScan(
     const sz = Math.floor(start.z);
 
     const result: Pos[] = [{ x: sx, y: sy, z: sz }];
-    const visited = new Set<string>([posKey(sx, sy, sz)]);
+    const visited = new Set<bigint>([posKey(sx, sy, sz)]);
     const queue: Pos[] = [{ x: sx, y: sy, z: sz }];
     const t0 = Date.now();
 
