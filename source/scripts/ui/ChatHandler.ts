@@ -5,6 +5,9 @@
  *   #vm        → 打开设置
  *   #vm on     → 开启连锁
  *   #vm off    → 关闭连锁
+ *
+ * 注意：chatSend 在 @minecraft/server 2.8.0 稳定版类型中未导出，
+ * 但运行时可用，此处用类型断言访问。
  */
 
 import { world } from '@minecraft/server';
@@ -17,11 +20,29 @@ import { showSettings } from './SettingsForm';
 const TAG = '§8[VM]§r';
 
 // ═══════════════════════════════════════
+//  类型（运行时存在但 2.8.0 稳定版 d.ts 未导出）
+// ═══════════════════════════════════════
+
+interface ChatSendBeforeEvent {
+    message: string;
+    sender: import('@minecraft/server').Player;
+    cancel: boolean;
+}
+
+interface ChatSendBeforeEventSignal {
+    subscribe(callback: (event: ChatSendBeforeEvent) => void): void;
+}
+
+// ═══════════════════════════════════════
 //  注册
 // ═══════════════════════════════════════
 
 export function registerChatHandler(): void {
-    world.beforeEvents.chatSend.subscribe((event) => {
+    const beforeEvents = world.beforeEvents as unknown as {
+        chatSend: ChatSendBeforeEventSignal;
+    };
+
+    beforeEvents.chatSend.subscribe((event) => {
         const message = event.message.trim();
         if (!message.startsWith(CHAT_PREFIX)) return;
 
