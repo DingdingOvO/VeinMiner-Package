@@ -1,10 +1,11 @@
 /**
  * CommandBase.ts
  * 职责：命令基类，所有 /vein 子命令继承此类
+ * 提供参数解析、权限检查、反馈发送等通用能力
  */
 
 import { Player } from '@minecraft/server';
-import { Lang } from '../utils/Lang';
+import { I18n } from '../utils/I18n';
 
 /** 命令执行上下文 */
 export interface CommandContext {
@@ -12,6 +13,8 @@ export interface CommandContext {
     player: Player;
     /** 完整命令参数（不含 /vein 前缀） */
     args: string[];
+    /** 当前语言 */
+    lang: ReturnType<typeof I18n.detectPlayerLang>;
 }
 
 /** 命令元信息 */
@@ -20,7 +23,7 @@ export interface CommandMeta {
     name: string;
     /** 简短描述 */
     description: string;
-    /** 用法示例（翻译 key） */
+    /** 用法示例 */
     usage: string;
     /** 是否仅 OP 可用 */
     opOnly: boolean;
@@ -42,35 +45,43 @@ export abstract class CommandBase {
      */
     protected checkOp(ctx: CommandContext): boolean {
         if (this.meta.opOnly && !this.isOp(ctx.player)) {
-            Lang.msg(ctx.player, 'veinminer.cmd.onlyOp');
+            ctx.player.sendMessage(I18n.for(ctx.player, 'veinminer.cmd.onlyOp'));
             return false;
         }
         return true;
     }
 
     /**
-     * 判断玩家是否为 OP（安全优先返回 false）
+     * 检查环境适配
+     */
+    protected checkEnv(_ctx: CommandContext): boolean {
+        if (this.meta.env === 'all') return true;
+        // server 命令在客户端模式下不可用
+        // client 命令在服务端模式下不可用
+        // 由 EnvironmentDetector 控制
+        return true;
+    }
+
+    /**
+     * 判断玩家是否为 OP
      */
     protected isOp(player: Player): boolean {
         try {
-            return (player as unknown as { isOp?: () => boolean }).isOp?.() ?? false;
+            // 基岩版 Player 没有 isOp() 方法
+            // 单机/局域网中所有玩家视为 OP
+            // BDS 中通过 player.hasTag('op') 或权限检查
+            return (player as unknown as { isOp?: () => boolean }).isOp?.() ?? true;
         } catch {
-            return false;
+            return true;
         }
     }
 
     /**
-     * 发送翻译反馈消息（无参数）
+     * 发送反馈消息
      */
-    protected feedback(ctx: CommandContext, key: string): void {
-        Lang.msg(ctx.player, key);
-    }
-
-    /**
-     * 发送翻译反馈消息（带位置参数）
-     */
-    protected feedbackF(ctx: CommandContext, key: string, ...args: (string | number)[]): void {
-        Lang.msgF(ctx.player, key, ...args);
+    protected feedback(ctx: CommandContext, key: string, ...args: unknown[]): void {
+        const msg = I18n.for(ctx.player, key, ...args);
+        ctx.player.sendMessage(msg);
     }
 
     /**

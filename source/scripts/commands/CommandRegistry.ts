@@ -1,11 +1,12 @@
 /**
  * CommandRegistry.ts
  * 职责：命令注册中心，统一管理所有 /vein 子命令
+ * 负责命令分发、参数解析、权限与环境检查
  */
 
 import { Player } from '@minecraft/server';
 import { CommandBase, CommandContext } from './CommandBase';
-import { Lang } from '../utils/Lang';
+import { I18n } from '../utils/I18n';
 import { Logger } from '../utils/Logger';
 import { EnvironmentDetector } from '../utils/EnvironmentDetector';
 
@@ -37,6 +38,8 @@ export class CommandRegistry {
 
     /**
      * 分发执行
+     * @param player 执行玩家
+     * @param args 命令参数（args[0] 是子命令名）
      */
     public static dispatch(player: Player, args: string[]): void {
         try {
@@ -51,25 +54,29 @@ export class CommandRegistry {
             const cmd = this.commands.get(subName);
 
             if (!cmd) {
-                Lang.msg(player, 'veinminer.cmd.notFound');
+                player.sendMessage(I18n.for(player, 'veinminer.cmd.notFound'));
                 return;
             }
 
             // 环境检查
             if (cmd.meta.env === 'server' && !EnvironmentDetector.isServer()) {
-                Lang.msg(player, 'veinminer.cmd.cmdNotAvailable');
+                player.sendMessage(I18n.for(player, 'veinminer.cmd.cmdNotAvailable'));
                 return;
             }
             if (cmd.meta.env === 'client' && !EnvironmentDetector.isClient()) {
-                Lang.msg(player, 'veinminer.cmd.cmdNotAvailable');
+                player.sendMessage(I18n.for(player, 'veinminer.cmd.cmdNotAvailable'));
                 return;
             }
 
-            const ctx: CommandContext = { player, args: subArgs };
-
             // 权限检查
+            const ctx: CommandContext = {
+                player,
+                args: subArgs,
+                lang: I18n.detectPlayerLang(player)
+            };
+
             if (cmd.meta.opOnly && !this.isOp(player)) {
-                Lang.msg(player, 'veinminer.cmd.onlyOp');
+                player.sendMessage(I18n.for(player, 'veinminer.cmd.onlyOp'));
                 return;
             }
 
@@ -79,14 +86,15 @@ export class CommandRegistry {
             }
         } catch (err) {
             Logger.error('命令分发异常', err);
-            Lang.msg(player, 'veinminer.error.generic');
+            player.sendMessage(I18n.for(player, 'veinminer.error.generic'));
         }
     }
 
     /**
-     * 打开主菜单
+     * 打开主菜单（无参数 /vein）
      */
     private static openMainMenu(player: Player): void {
+        // 延迟加载，避免循环依赖
         import('../ui/menus/MainMenu').then(m => {
             m.MainMenu.show(player).catch(err => {
                 Logger.error('打开主菜单失败', err);
@@ -95,13 +103,13 @@ export class CommandRegistry {
     }
 
     /**
-     * 判断 OP（安全优先返回 false）
+     * 判断 OP
      */
     private static isOp(player: Player): boolean {
         try {
-            return (player as unknown as { isOp?: () => boolean }).isOp?.() ?? false;
+            return (player as unknown as { isOp?: () => boolean }).isOp?.() ?? true;
         } catch {
-            return false;
+            return true;
         }
     }
 

@@ -20,23 +20,23 @@ export class VeinRateCommand extends CommandBase {
         const perSecond = this.parseInt(ctx, 0);
         const perTick = this.parseInt(ctx, 1);
         if (perSecond === null || perTick === null) {
-            ctx.player.sendMessage({ text: '§c' + this.meta.usage });
+            ctx.player.sendMessage('§c' + this.meta.usage);
             return false;
         }
 
         if (perSecond < 1 || perTick < 1) {
-            ctx.player.sendMessage({ translate: 'veinminer.cmd.positiveNumber' });
+            ctx.player.sendMessage('§c数值必须大于 0');
             return false;
         }
 
         if (perTick > perSecond) {
-            ctx.player.sendMessage({ translate: 'veinminer.cmd.rateOverflow' });
+            ctx.player.sendMessage('§c每 tick 数量不能超过每秒数量');
             return false;
         }
 
         const registry = ConfigRegistry.getInstance();
         registry.getServerRateLimitStorage().set(perSecond, perTick);
-        this.feedbackF(ctx, 'veinminer.cmd.rateSet', perSecond, perTick);
+        this.feedback(ctx, 'veinminer.cmd.rateSet', perSecond, perTick);
         return true;
     }
 }

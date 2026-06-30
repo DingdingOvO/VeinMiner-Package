@@ -6,6 +6,7 @@
 import { Player } from '@minecraft/server';
 import { ActionFormData } from '@minecraft/server-ui';
 import { ConfigRegistry } from '../../config/registry/ConfigRegistry';
+import { I18n } from '../../utils/I18n';
 import { Logger } from '../../utils/Logger';
 
 export class ServerLimitsUI {
@@ -16,22 +17,13 @@ export class ServerLimitsUI {
             const entries = Object.entries(limits);
 
             const form = new ActionFormData();
-            form.title('veinminer.ui.server.limits');
+            form.title(I18n.for(player, 'veinminer.ui.server.limits'));
+            form.body(entries.length > 0
+                ? `§7当前自定义上限:§r\n${entries.map(([k, v]) => `§8- ${k}: §e${v}`).join('\n')}`
+                : '§7使用 /vein limit <方块ID> <数量> 设置§r'
+            );
 
-            if (entries.length > 0) {
-                form.body({
-                    rawtext: [
-                        { text: '§7' },
-                        { translate: 'veinminer.ui.server.currentLimits' },
-                        { text: ':§r\n' },
-                        { text: entries.map(([k, v]) => `§8- ${k}: §e${v}`).join('\n') }
-                    ]
-                });
-            } else {
-                form.body({ translate: 'veinminer.ui.server.noCustomLimits' });
-            }
-
-            form.button('veinminer.ui.back');
+            form.button(I18n.for(player, 'veinminer.ui.back'));
 
             const response = await form.show(player);
             if (response.canceled) return;

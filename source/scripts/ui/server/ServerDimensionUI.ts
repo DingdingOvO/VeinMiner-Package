@@ -6,6 +6,7 @@
 import { Player } from '@minecraft/server';
 import { ActionFormData } from '@minecraft/server-ui';
 import { ConfigRegistry } from '../../config/registry/ConfigRegistry';
+import { I18n } from '../../utils/I18n';
 import { Logger } from '../../utils/Logger';
 
 export class ServerDimensionUI {
@@ -17,29 +18,15 @@ export class ServerDimensionUI {
             const d = cached.dimensions;
 
             const form = new ActionFormData();
-            form.title('veinminer.ui.server.dimension');
-            form.body({
-                rawtext: [
-                    { text: '§7' }, { translate: 'veinminer.status.overworld' },
-                    { text: ': ' }, { translate: d.overworld.enabled ? 'veinminer.ui.on' : 'veinminer.ui.off' },
-                    { text: '§r' },
-                    { text: ` (×${d.overworld.multiplier})\n` },
+            form.title(I18n.for(player, 'veinminer.ui.server.dimension'));
+            form.body(
+                `§7${I18n.for(player, 'veinminer.status.overworld')}: ${d.overworld.enabled ? '§a' + I18n.for(player, 'veinminer.ui.on') : '§c' + I18n.for(player, 'veinminer.ui.off')}§r (×${d.overworld.multiplier})\n` +
+                `§7${I18n.for(player, 'veinminer.status.nether')}: ${d.nether.enabled ? '§a' + I18n.for(player, 'veinminer.ui.on') : '§c' + I18n.for(player, 'veinminer.ui.off')}§r (×${d.nether.multiplier})\n` +
+                `§7${I18n.for(player, 'veinminer.status.end')}: ${d.end.enabled ? '§a' + I18n.for(player, 'veinminer.ui.on') : '§c' + I18n.for(player, 'veinminer.ui.off')}§r (×${d.end.multiplier})\n\n` +
+                `§7使用配置文件或命令修改具体数值§r`
+            );
 
-                    { text: '§7' }, { translate: 'veinminer.status.nether' },
-                    { text: ': ' }, { translate: d.nether.enabled ? 'veinminer.ui.on' : 'veinminer.ui.off' },
-                    { text: '§r' },
-                    { text: ` (×${d.nether.multiplier})\n` },
-
-                    { text: '§7' }, { translate: 'veinminer.status.end' },
-                    { text: ': ' }, { translate: d.end.enabled ? 'veinminer.ui.on' : 'veinminer.ui.off' },
-                    { text: '§r' },
-                    { text: ` (×${d.end.multiplier})\n\n` },
-
-                    { text: '§7' }, { translate: 'veinminer.ui.server.editViaConfig' }, { text: '§r' }
-                ]
-            });
-
-            form.button('veinminer.ui.back');
+            form.button(I18n.for(player, 'veinminer.ui.back'));
 
             const response = await form.show(player);
             if (response.canceled) return;

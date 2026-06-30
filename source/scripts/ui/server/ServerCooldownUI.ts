@@ -6,6 +6,7 @@
 import { Player } from '@minecraft/server';
 import { ActionFormData } from '@minecraft/server-ui';
 import { ConfigRegistry } from '../../config/registry/ConfigRegistry';
+import { I18n } from '../../utils/I18n';
 import { Logger } from '../../utils/Logger';
 
 export class ServerCooldownUI {
@@ -15,24 +16,14 @@ export class ServerCooldownUI {
             const cooldown = registry.getServerRegistry().getCooldown();
 
             const form = new ActionFormData();
-            form.title('veinminer.ui.server.cooldown');
-            form.body({
-                rawtext: [
-                    { text: '§7' }, { translate: 'veinminer.ui.server.personalCooldown' },
-                    { text: ': §e' }, { text: String(cooldown.personalSec) }, { text: '§r ' },
-                    { translate: 'veinminer.ui.seconds' },
-                    { text: '\n' },
+            form.title(I18n.for(player, 'veinminer.ui.server.cooldown'));
+            form.body(
+                `§7个人冷却: §e${cooldown.personalSec}§r 秒\n` +
+                `§7全服冷却: §e${cooldown.globalSec}§r 秒\n\n` +
+                `§7通过修改配置文件调整§r`
+            );
 
-                    { text: '§7' }, { translate: 'veinminer.ui.server.globalCooldown' },
-                    { text: ': §e' }, { text: String(cooldown.globalSec) }, { text: '§r ' },
-                    { translate: 'veinminer.ui.seconds' },
-                    { text: '\n\n' },
-
-                    { text: '§7' }, { translate: 'veinminer.ui.server.editViaConfig' }, { text: '§r' }
-                ]
-            });
-
-            form.button('veinminer.ui.back');
+            form.button(I18n.for(player, 'veinminer.ui.back'));
 
             const response = await form.show(player);
             if (response.canceled) return;

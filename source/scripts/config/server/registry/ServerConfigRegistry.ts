@@ -111,12 +111,6 @@ export class ServerConfigRegistry {
     }
 
     /**
-     * 获取玩家权限覆盖配置
-     */
-    public getPlayerOverride(): ServerConfigData['playerOverride'] {
-        return this.cached.playerOverride;
-    }
-    /**
      * 获取速率限制
      */
     public getRateLimit(): { perSecond: number; perTick: number } {

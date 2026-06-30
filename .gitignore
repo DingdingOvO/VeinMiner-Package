@@ -1,11 +1,6 @@
 node_modules/
 build/
-dist/
-*.mcaddon
-*.mcpack
 *.js.map
 .DS_Store
 Thumbs.db
-package-lock.json.env
-skills/
-tool-results/
+package-lock.json

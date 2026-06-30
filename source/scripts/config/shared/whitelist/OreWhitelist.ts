@@ -21,7 +21,7 @@ export const ORE_WHITELIST: readonly string[] = [
     'minecraft:diamond_ore',
     'minecraft:deepslate_diamond_ore',
     'minecraft:nether_gold_ore',
-    'minecraft:quartz_ore',
+    'minecraft:nether_quartz_ore',
     'minecraft:ancient_debris'
 ];
 

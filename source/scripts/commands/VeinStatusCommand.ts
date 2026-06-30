@@ -6,6 +6,7 @@
 import { CommandBase, CommandContext, CommandMeta } from './CommandBase';
 import { ConfigRegistry } from '../config/registry/ConfigRegistry';
 import { EnvironmentDetector } from '../utils/EnvironmentDetector';
+import { I18n } from '../utils/I18n';
 
 export class VeinStatusCommand extends CommandBase {
     public readonly meta: CommandMeta = {
@@ -19,22 +20,20 @@ export class VeinStatusCommand extends CommandBase {
     public execute(ctx: CommandContext): boolean {
         const registry = ConfigRegistry.getInstance();
         const env = EnvironmentDetector.detect();
-        const envKey = env === 'server' ? 'veinminer.msg.envServer' : 'veinminer.msg.envClient';
+        const envName = env === 'server'
+            ? I18n.for(ctx.player, 'veinminer.cmd.serverMode')
+            : I18n.for(ctx.player, 'veinminer.cmd.clientMode');
+
         const toggle = registry.getPersonalToggle(ctx.player);
         const maxVein = registry.getEffectiveMaxVein(ctx.player);
-        const statusKey = toggle ? 'veinminer.ui.on' : 'veinminer.ui.off';
-        const statusColor = toggle ? '§a' : '§c';
 
-        ctx.player.sendMessage({
-            rawtext: [
-                { text: '§e§l' }, { translate: 'veinminer.ui.title' }, { text: '§r\n' },
-                { translate: envKey }, { text: '\n' },
-                { text: '§7' }, { translate: 'veinminer.ui.toggle' }, { text: ': ' },
-                { text: statusColor }, { translate: statusKey }, { text: '§r\n' },
-                { text: '§7' }, { translate: 'veinminer.ui.maxBlocks' }, { text: ': §e' },
-                { text: String(maxVein) }, { text: '§r' }
-            ]
-        });
+        const lines: string[] = [
+            `§e§l${I18n.for(ctx.player, 'veinminer.ui.title')}§r`,
+            `§7${I18n.for(ctx.player, 'veinminer.msg.envDetected', envName)}`,
+            `§7${I18n.for(ctx.player, 'veinminer.ui.toggle')}: ${toggle ? '§a' + I18n.for(ctx.player, 'veinminer.ui.on') : '§c' + I18n.for(ctx.player, 'veinminer.ui.off')}§r`,
+            `§7${I18n.for(ctx.player, 'veinminer.ui.maxBlocks')}: §e${maxVein}§r`
+        ];
+        ctx.player.sendMessage(lines.join('\n'));
         return true;
     }
 }

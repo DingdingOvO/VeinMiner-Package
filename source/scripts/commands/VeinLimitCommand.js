@@ -1,0 +1,51 @@
+/**
+ * VeinLimitCommand.ts
+ * 职责：/vein limit <方块ID> <数量> | default <数量> | list
+ * 仅服务端模式 + OP 可用
+ */
+import { CommandBase } from './CommandBase';
+import { ConfigRegistry } from '../config/registry/ConfigRegistry';
+import { BlockIdHelper } from '../lib/utils/BlockIdHelper';
+export class VeinLimitCommand extends CommandBase {
+    meta = {
+        name: 'limit',
+        description: '设置方块连锁上限',
+        usage: '/vein limit <方块ID> <数量> | default <数量> | list',
+        opOnly: true,
+        env: 'server'
+    };
+    execute(ctx) {
+        const action = this.arg(ctx, 0);
+        const registry = ConfigRegistry.getInstance();
+        const storage = registry.getServerBlockLimitsStorage();
+        if (action === 'list') {
+            const all = storage.list();
+            const entries = Object.entries(all);
+            if (entries.length === 0) {
+                ctx.player.sendMessage('§7未设置自定义方块上限');
+            }
+            else {
+                ctx.player.sendMessage(`§e方块上限列表:§r\n${entries.map(([k, v]) => `§7- ${k}: §e${v}`).join('\n')}`);
+            }
+            return true;
+        }
+        if (action === 'default') {
+            const num = this.parseInt(ctx, 1);
+            if (num === null)
+                return false;
+            storage.setDefault(num);
+            this.feedback(ctx, 'veinminer.cmd.limitDefault', num);
+            return true;
+        }
+        // 普通设置：/vein limit <方块ID> <数量>
+        const blockId = BlockIdHelper.normalize(action ?? '');
+        const num = this.parseInt(ctx, 1);
+        if (!blockId || num === null) {
+            ctx.player.sendMessage('§c' + this.meta.usage);
+            return false;
+        }
+        storage.set(blockId, num);
+        this.feedback(ctx, 'veinminer.cmd.limitSet', blockId, num);
+        return true;
+    }
+}

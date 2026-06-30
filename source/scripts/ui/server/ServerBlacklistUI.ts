@@ -1,11 +1,12 @@
 /**
  * ServerBlacklistUI.ts
- * 职责：黑名单管理 UI
+ * 职责：黑名单管理 UI（查看）
  */
 
 import { Player } from '@minecraft/server';
 import { ActionFormData } from '@minecraft/server-ui';
 import { ConfigRegistry } from '../../config/registry/ConfigRegistry';
+import { I18n } from '../../utils/I18n';
 import { Logger } from '../../utils/Logger';
 
 export class ServerBlacklistUI {
@@ -15,22 +16,13 @@ export class ServerBlacklistUI {
             const list = registry.getServerBlacklistStorage().list();
 
             const form = new ActionFormData();
-            form.title('veinminer.ui.server.blacklist');
+            form.title(I18n.for(player, 'veinminer.ui.server.blacklist'));
+            form.body(list.length > 0
+                ? `§7黑名单 (${list.length}):§r\n${list.map(b => `§8- ${b}`).join('\n')}`
+                : '§7黑名单为空§r'
+            );
 
-            if (list.length > 0) {
-                form.body({
-                    rawtext: [
-                        { text: '§7' },
-                        { translate: 'veinminer.ui.server.blacklist' },
-                        { text: ` (${list.length}):§r\n` },
-                        { text: list.map(b => `§8- ${b}`).join('\n') }
-                    ]
-                });
-            } else {
-                form.body({ translate: 'veinminer.cmd.blacklistEmpty' });
-            }
-
-            form.button('veinminer.ui.back');
+            form.button(I18n.for(player, 'veinminer.ui.back'));
 
             const response = await form.show(player);
             if (response.canceled) return;

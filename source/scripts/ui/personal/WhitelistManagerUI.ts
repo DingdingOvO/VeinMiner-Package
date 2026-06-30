@@ -4,9 +4,9 @@
  */
 
 import { Player } from '@minecraft/server';
-import { ActionFormData, ModalFormData } from '@minecraft/server-ui';
+import { ActionFormData } from '@minecraft/server-ui';
 import { ConfigRegistry } from '../../config/registry/ConfigRegistry';
-import { Lang } from '../../utils/Lang';
+import { I18n } from '../../utils/I18n';
 import { Logger } from '../../utils/Logger';
 
 export class WhitelistManagerUI {
@@ -17,36 +17,30 @@ export class WhitelistManagerUI {
             const personalList = manager.listPersonal(player);
 
             const form = new ActionFormData();
-            form.title('veinminer.ui.whitelist');
+            form.title(I18n.for(player, 'veinminer.ui.whitelist'));
+            form.body(personalList.length > 0
+                ? `§7${I18n.for(player, 'veinminer.ui.current')} (${personalList.length}):§r\n${personalList.map(b => `§8- ${b}`).join('\n')}`
+                : '§7' + I18n.for(player, 'veinminer.ui.default') + '§r'
+            );
 
-            if (personalList.length > 0) {
-                form.body({
-                    rawtext: [
-                        { text: '§7' },
-                        { translate: 'veinminer.ui.current' },
-                        { text: ` (${personalList.length}):§r\n` },
-                        { text: personalList.map(b => `§8- ${b}`).join('\n') }
-                    ]
-                });
-            } else {
-                form.body({ rawtext: [{ text: '§7' }, { translate: 'veinminer.ui.default' }, { text: '§r' }] });
-            }
-
-            form.button('veinminer.ui.addBlock');
-            if (personalList.length > 0) {
-                form.button('veinminer.ui.removeBlock');
-            }
-            form.button('veinminer.ui.back');
+            form.button(I18n.for(player, 'veinminer.ui.addBlock'));
+            form.button(I18n.for(player, 'veinminer.ui.removeBlock'));
+            form.button(I18n.for(player, 'veinminer.ui.back'));
 
             const response = await form.show(player);
             if (response.canceled) return;
 
-            if (response.selection === 0) {
-                await this.addBlock(player, manager);
-            } else if (response.selection === 1 && personalList.length > 0) {
-                await this.removeBlock(player, manager, personalList);
-            } else {
-                import('../menus/MainMenu').then(m => m.MainMenu.show(player));
+            switch (response.selection) {
+                case 0:
+                    await this.addBlock(player);
+                    break;
+                case 1:
+                    await this.removeBlock(player);
+                    break;
+                case 2:
+                    // 返回主菜单
+                    import('../menus/MainMenu').then(m => m.MainMenu.show(player));
+                    break;
             }
         } catch (err) {
             Logger.error('WhitelistManagerUI 显示失败', err);
@@ -54,58 +48,17 @@ export class WhitelistManagerUI {
     }
 
     /**
-     * 添加方块（通过 ModalFormData 输入方块 ID）
+     * 添加方块（通过聊天输入）
      */
-    private static async addBlock(player: Player, manager: { add: (p: Player, id: string) => boolean }): Promise<void> {
-        try {
-            const form = new ModalFormData();
-            form.title('veinminer.ui.addBlock');
-            form.textField('Block ID', 'minecraft:', { defaultValue: 'minecraft:' });
-
-            const response = await form.show(player);
-            if (response.canceled) return;
-
-            const blockId = (response.formValues?.[0] as string ?? '').trim();
-            if (!blockId) return;
-
-            const ok = manager.add(player, blockId);
-            if (ok) {
-                Lang.msgF(player, 'veinminer.msg.blockAdded', blockId);
-            } else {
-                Lang.msg(player, 'veinminer.msg.alreadyInList');
-            }
-        } catch (err) {
-            Logger.error('添加方块失败', err);
-        }
+    private static async addBlock(player: Player): Promise<void> {
+        // 简化：通过 /vein whitelist add 命令添加
+        player.sendMessage('§e请使用 /vein whitelist add <方块ID> 添加方块§r');
     }
 
     /**
      * 移除方块
      */
-    private static async removeBlock(player: Player, manager: { remove: (p: Player, id: string) => boolean }, list: string[]): Promise<void> {
-        try {
-            const form = new ActionFormData();
-            form.title('veinminer.ui.removeBlock');
-            for (const id of list) {
-                form.button(`§8- ${id}`);
-            }
-            form.button('veinminer.ui.back');
-
-            const response = await form.show(player);
-            if (response.canceled) return;
-
-            const idx = response.selection ?? 0;
-            if (idx < list.length) {
-                const blockId = list[idx];
-                const ok = manager.remove(player, blockId);
-                if (ok) {
-                    Lang.msgF(player, 'veinminer.msg.blockRemoved', blockId);
-                } else {
-                    Lang.msg(player, 'veinminer.msg.notInList');
-                }
-            }
-        } catch (err) {
-            Logger.error('移除方块失败', err);
-        }
+    private static async removeBlock(player: Player): Promise<void> {
+        player.sendMessage('§e请使用 /vein whitelist remove <方块ID> 移除方块§r');
     }
 }

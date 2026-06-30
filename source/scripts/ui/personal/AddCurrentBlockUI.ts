@@ -5,7 +5,7 @@
 
 import { Player } from '@minecraft/server';
 import { ConfigRegistry } from '../../config/registry/ConfigRegistry';
-import { Lang } from '../../utils/Lang';
+import { I18n } from '../../utils/I18n';
 import { Logger } from '../../utils/Logger';
 
 export class AddCurrentBlockUI {
@@ -16,7 +16,7 @@ export class AddCurrentBlockUI {
         try {
             const blockRay = player.getBlockFromViewDirection({ maxDistance: 8 });
             if (!blockRay) {
-                Lang.msg(player, 'veinminer.cmd.invalidBlock');
+                player.sendMessage(I18n.for(player, 'veinminer.cmd.invalidBlock'));
                 return;
             }
             const block = blockRay.block;
@@ -24,9 +24,9 @@ export class AddCurrentBlockUI {
             const manager = registry.getClientRegistry().getBlockListManager();
             const success = manager.add(player, block.typeId);
             if (success) {
-                Lang.msgF(player, 'veinminer.msg.blockAdded', block.typeId);
+                player.sendMessage(I18n.for(player, 'veinminer.msg.blockAdded', block.typeId));
             } else {
-                Lang.msg(player, 'veinminer.msg.alreadyInList');
+                player.sendMessage(I18n.for(player, 'veinminer.msg.alreadyInList'));
             }
         } catch (err) {
             Logger.error('AddCurrentBlockUI 失败', err);

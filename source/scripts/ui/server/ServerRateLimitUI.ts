@@ -6,6 +6,7 @@
 import { Player } from '@minecraft/server';
 import { ActionFormData } from '@minecraft/server-ui';
 import { ConfigRegistry } from '../../config/registry/ConfigRegistry';
+import { I18n } from '../../utils/I18n';
 import { Logger } from '../../utils/Logger';
 
 export class ServerRateLimitUI {
@@ -15,20 +16,14 @@ export class ServerRateLimitUI {
             const limit = registry.getServerRegistry().getRateLimit();
 
             const form = new ActionFormData();
-            form.title('veinminer.ui.server.rateLimit');
-            form.body({
-                rawtext: [
-                    { text: '§7' }, { translate: 'veinminer.ui.server.perSecond' },
-                    { text: ': §e' }, { text: String(limit.perSecond) }, { text: '§r\n' },
+            form.title(I18n.for(player, 'veinminer.ui.server.rateLimit'));
+            form.body(
+                `§7每秒上限: §e${limit.perSecond}§r\n` +
+                `§7每 tick 上限: §e${limit.perTick}§r\n\n` +
+                `§7使用 /vein rate <每秒> <每tick> 修改§r`
+            );
 
-                    { text: '§7' }, { translate: 'veinminer.ui.server.perTick' },
-                    { text: ': §e' }, { text: String(limit.perTick) }, { text: '§r\n\n' },
-
-                    { text: '§7' }, { translate: 'veinminer.ui.server.howToSetRate' }, { text: '§r' }
-                ]
-            });
-
-            form.button('veinminer.ui.back');
+            form.button(I18n.for(player, 'veinminer.ui.back'));
 
             const response = await form.show(player);
             if (response.canceled) return;

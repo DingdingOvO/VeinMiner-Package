@@ -6,6 +6,7 @@
 import { Player } from '@minecraft/server';
 import { ActionFormData } from '@minecraft/server-ui';
 import { ConfigRegistry } from '../../config/registry/ConfigRegistry';
+import { I18n } from '../../utils/I18n';
 import { Logger } from '../../utils/Logger';
 
 export class ServerPlayerOverrideUI {
@@ -16,26 +17,15 @@ export class ServerPlayerOverrideUI {
             const o = cached.playerOverride;
 
             const form = new ActionFormData();
-            form.title('veinminer.ui.server.playerOverride');
-            form.body({
-                rawtext: [
-                    { text: '§7' }, { translate: 'veinminer.ui.server.allowToggle' },
-                    { text: ': ' }, { translate: o.allowToggle ? 'veinminer.ui.yes' : 'veinminer.ui.no' },
-                    { text: '§r\n' },
+            form.title(I18n.for(player, 'veinminer.ui.server.playerOverride'));
+            form.body(
+                `§7允许玩家切换开关: ${o.allowToggle ? '§a是' : '§c否'}§r\n` +
+                `§7允许玩家调整最大连锁数: ${o.allowMaxVein ? '§a是' : '§c否'}§r\n` +
+                `§7允许玩家管理个人白名单: ${o.allowWhitelist ? '§a是' : '§c否'}§r\n\n` +
+                `§7通过修改配置文件调整§r`
+            );
 
-                    { text: '§7' }, { translate: 'veinminer.ui.server.allowMaxVein' },
-                    { text: ': ' }, { translate: o.allowMaxVein ? 'veinminer.ui.yes' : 'veinminer.ui.no' },
-                    { text: '§r\n' },
-
-                    { text: '§7' }, { translate: 'veinminer.ui.server.allowWhitelist' },
-                    { text: ': ' }, { translate: o.allowWhitelist ? 'veinminer.ui.yes' : 'veinminer.ui.no' },
-                    { text: '§r\n\n' },
-
-                    { text: '§7' }, { translate: 'veinminer.ui.server.editViaConfig' }, { text: '§r' }
-                ]
-            });
-
-            form.button('veinminer.ui.back');
+            form.button(I18n.for(player, 'veinminer.ui.back'));
 
             const response = await form.show(player);
             if (response.canceled) return;

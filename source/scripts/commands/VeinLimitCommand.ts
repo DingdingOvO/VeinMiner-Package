@@ -26,14 +26,9 @@ export class VeinLimitCommand extends CommandBase {
             const all = storage.list();
             const entries = Object.entries(all);
             if (entries.length === 0) {
-                ctx.player.sendMessage({ translate: 'veinminer.cmd.noCustomLimit' });
+                ctx.player.sendMessage('§7未设置自定义方块上限');
             } else {
-                ctx.player.sendMessage({
-                    rawtext: [
-                        { text: '§e' }, { translate: 'veinminer.cmd.limitList' }, { text: ':§r\n' },
-                        { text: entries.map(([k, v]) => `§7- ${k}: §e${v}`).join('\n') }
-                    ]
-                });
+                ctx.player.sendMessage(`§e方块上限列表:§r\n${entries.map(([k, v]) => `§7- ${k}: §e${v}`).join('\n')}`);
             }
             return true;
         }
@@ -42,7 +37,7 @@ export class VeinLimitCommand extends CommandBase {
             const num = this.parseInt(ctx, 1);
             if (num === null) return false;
             storage.setDefault(num);
-            this.feedbackF(ctx, 'veinminer.cmd.limitDefault', num);
+            this.feedback(ctx, 'veinminer.cmd.limitDefault', num);
             return true;
         }
 
@@ -50,12 +45,12 @@ export class VeinLimitCommand extends CommandBase {
         const blockId = BlockIdHelper.normalize(action ?? '');
         const num = this.parseInt(ctx, 1);
         if (!blockId || num === null) {
-            ctx.player.sendMessage({ text: '§c' + this.meta.usage });
+            ctx.player.sendMessage('§c' + this.meta.usage);
             return false;
         }
 
         storage.set(blockId, num);
-        this.feedbackF(ctx, 'veinminer.cmd.limitSet', blockId, num);
+        this.feedback(ctx, 'veinminer.cmd.limitSet', blockId, num);
         return true;
     }
 }

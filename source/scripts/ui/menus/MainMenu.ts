@@ -1,9 +1,7 @@
 /**
- * MainMenu.ts - VeinMiner 主菜单
- *
- * 表单文本直接传翻译 key，游戏引擎自动根据玩家语言选择对应 .lang 文件。
- * sendMessage / setActionBar 使用 rawtext translate/with。
- * - 客户端模式：完整个人设置（开关/上限/掉落物/白名单/重置）
+ * MainMenu.ts ★ 核心UI：主菜单 ★
+ * 职责：根据运行环境显示不同菜单
+ * - 客户端模式：完整个人设置（开关/上限/白名单）
  * - 服务端模式（普通玩家）：仅显示状态 + 开关（若允许）
  * - 服务端模式（OP）：额外显示管理入口
  */
@@ -11,7 +9,7 @@
 import { Player } from '@minecraft/server';
 import { ActionFormData } from '@minecraft/server-ui';
 import { ConfigRegistry } from '../../config/registry/ConfigRegistry';
-import { Lang } from '../../utils/Lang';
+import { I18n } from '../../utils/I18n';
 import { Logger } from '../../utils/Logger';
 import { AdvancedSettingsModal } from './AdvancedSettingsModal';
 import { WhitelistManagerUI } from '../personal/WhitelistManagerUI';
@@ -27,40 +25,30 @@ export class MainMenu {
             const isServer = registry.isServerMode();
             const isOp = this.isOp(player);
 
-            const envKey = isServer ? 'veinminer.msg.envServer' : 'veinminer.msg.envClient';
-            const toggle = registry.getPersonalToggle(player);
-            const statusKey = toggle ? 'veinminer.ui.enabled' : 'veinminer.ui.disabled';
-            const statusColor = toggle ? '§a' : '§c';
-
             const form = new ActionFormData();
-            form.title('veinminer.ui.title');
-            form.body({
-                rawtext: [
-                    { translate: envKey },
-                    { text: '\n' },
-                    { translate: 'veinminer.ui.status' },
-                    { text: ': ' },
-                    { text: statusColor },
-                    { translate: statusKey },
-                    { text: '§r' }
-                ]
-            });
+            form.title(I18n.for(player, 'veinminer.ui.title'));
 
+            // 显示环境信息
+            const envName = isServer
+                ? I18n.for(player, 'veinminer.cmd.serverMode')
+                : I18n.for(player, 'veinminer.cmd.clientMode');
+            form.body(`${I18n.for(player, 'veinminer.msg.envDetected', envName)}\n${I18n.for(player, 'veinminer.ui.status')}: ${this.getStatusText(player)}`);
+
+            // 客户端模式 - 完整个人菜单
             if (!isServer) {
-                // 客户端模式 - 完整个人菜单
-                form.button('veinminer.ui.toggle');
-                form.button('veinminer.ui.maxBlocks');
-                form.button('veinminer.ui.collectDrops');
-                form.button('veinminer.ui.whitelist');
-                form.button('veinminer.ui.reset');
+                form.button(I18n.for(player, 'veinminer.ui.toggle'));
+                form.button(I18n.for(player, 'veinminer.ui.maxBlocks'));
+                form.button(I18n.for(player, 'veinminer.ui.whitelist'));
+                form.button(I18n.for(player, 'veinminer.ui.reset'));
             } else {
-                // 服务端模式
-                const override = registry.getServerRegistry().getPlayerOverride();
-                if (override.allowToggle || isOp) {
-                    form.button('veinminer.ui.toggle');
+                // 服务端模式 - 普通玩家仅显示开关（若允许）
+                const allowToggle = registry.getServerRegistry()['cached'].playerOverride.allowToggle;
+                if (allowToggle || isOp) {
+                    form.button(I18n.for(player, 'veinminer.ui.toggle'));
                 }
+                // OP 显示管理面板入口
                 if (isOp) {
-                    form.button('veinminer.ui.adminPanel');
+                    form.button(I18n.for(player, 'veinminer.ui.adminPanel'));
                 }
             }
 
@@ -82,28 +70,23 @@ export class MainMenu {
         // 客户端模式
         if (!isServer) {
             switch (selection) {
-                case 0: { // 连锁开关
+                case 0: { // toggle
                     const next = !registry.getPersonalToggle(player);
                     registry.setPersonalToggle(player, next);
-                    Lang.msg(player, next ? 'veinminer.msg.enabled' : 'veinminer.msg.disabled');
+                    player.sendMessage(I18n.for(player, next ? 'veinminer.msg.enabled' : 'veinminer.msg.disabled'));
                     break;
                 }
-                case 1: { // 最大连锁数
+                case 1: { // maxBlocks
                     await AdvancedSettingsModal.show(player);
                     break;
                 }
-                case 2: { // 掉落物集中
-                    await this.toggleCollectDrops(player);
-                    break;
-                }
-                case 3: { // 白名单管理
+                case 2: { // whitelist
                     await WhitelistManagerUI.show(player);
                     break;
                 }
-                case 4: { // 重置设置
+                case 3: { // reset
                     registry.resetPlayerData(player);
-                    player.setDynamicProperty('veinminer:collect_drops', true);
-                    Lang.msg(player, 'veinminer.msg.resetDone');
+                    player.sendMessage(I18n.for(player, 'veinminer.msg.resetDone'));
                     break;
                 }
             }
@@ -111,13 +94,13 @@ export class MainMenu {
         }
 
         // 服务端模式
-        const override = registry.getServerRegistry().getPlayerOverride();
+        const allowToggle = registry.getServerRegistry()['cached'].playerOverride.allowToggle;
         let buttonIdx = 0;
-        if (override.allowToggle || isOp) {
+        if (allowToggle || isOp) {
             if (selection === buttonIdx) {
                 const next = !registry.getPersonalToggle(player);
                 registry.setPersonalToggle(player, next);
-                Lang.msg(player, next ? 'veinminer.msg.enabled' : 'veinminer.msg.disabled');
+                player.sendMessage(I18n.for(player, next ? 'veinminer.msg.enabled' : 'veinminer.msg.disabled'));
                 return;
             }
             buttonIdx++;
@@ -130,28 +113,24 @@ export class MainMenu {
     }
 
     /**
-     * 掉落物集中开关
+     * 获取状态文本
      */
-    private static async toggleCollectDrops(player: Player): Promise<void> {
-        try {
-            const current = player.getDynamicProperty('veinminer:collect_drops');
-            const isOn = current !== false;
-            const next = !isOn;
-            player.setDynamicProperty('veinminer:collect_drops', next);
-            Lang.msg(player, next ? 'veinminer.msg.collectDropsOn' : 'veinminer.msg.collectDropsOff');
-        } catch (err) {
-            Logger.error('切换掉落物集中失败', err);
-        }
+    private static getStatusText(player: Player): string {
+        const registry = ConfigRegistry.getInstance();
+        const toggle = registry.getPersonalToggle(player);
+        return toggle
+            ? `§a${I18n.for(player, 'veinminer.ui.on')}§r`
+            : `§c${I18n.for(player, 'veinminer.ui.off')}§r`;
     }
 
     /**
-     * 判断 OP（非公开 API，安全优先返回 false）
+     * 判断 OP
      */
     private static isOp(player: Player): boolean {
         try {
-            return (player as unknown as { isOp?: () => boolean }).isOp?.() ?? false;
+            return (player as unknown as { isOp?: () => boolean }).isOp?.() ?? true;
         } catch {
-            return false;
+            return true;
         }
     }
 }

@@ -1,6 +1,6 @@
 /**
  * VeinWhitelistCommand.ts
- * 职责：/vein whitelist <add|remove|list> [方块ID]
+ * 职责：/vein whitelist <add|remove|list> [方块ID] - 管理额外白名单
  * 仅服务端模式 + OP 可用
  */
 
@@ -20,7 +20,7 @@ export class VeinWhitelistCommand extends CommandBase {
     public execute(ctx: CommandContext): boolean {
         const action = this.arg(ctx, 0);
         if (!action || !['add', 'remove', 'list'].includes(action)) {
-            ctx.player.sendMessage({ text: this.meta.usage });
+            ctx.player.sendMessage(this.meta.usage);
             return false;
         }
 
@@ -30,22 +30,16 @@ export class VeinWhitelistCommand extends CommandBase {
         if (action === 'list') {
             const list = storage.list();
             if (list.length === 0) {
-                ctx.player.sendMessage({ translate: 'veinminer.cmd.extraWhitelistEmpty' });
+                ctx.player.sendMessage('§7额外白名单为空');
             } else {
-                ctx.player.sendMessage({
-                    rawtext: [
-                        { text: '§e' }, { translate: 'veinminer.ui.server.whitelistExtra' },
-                        { text: ` (${list.length}):§r\n` },
-                        { text: list.map(b => `§7- ${b}`).join('\n') }
-                    ]
-                });
+                ctx.player.sendMessage(`§e额外白名单 (${list.length}):§r\n${list.map(b => `§7- ${b}`).join('\n')}`);
             }
             return true;
         }
 
         const blockId = this.arg(ctx, 1);
         if (!blockId) {
-            ctx.player.sendMessage({ text: '§c' + this.meta.usage });
+            ctx.player.sendMessage('§c' + this.meta.usage);
             return false;
         }
 
@@ -56,7 +50,7 @@ export class VeinWhitelistCommand extends CommandBase {
                 return false;
             }
             storage.add(normalized);
-            this.feedbackF(ctx, 'veinminer.cmd.whitelistAdd', normalized);
+            this.feedback(ctx, 'veinminer.cmd.whitelistAdd', normalized);
             return true;
         } else {
             if (!storage.has(normalized)) {
@@ -64,7 +58,7 @@ export class VeinWhitelistCommand extends CommandBase {
                 return false;
             }
             storage.remove(normalized);
-            this.feedbackF(ctx, 'veinminer.cmd.whitelistRemove', normalized);
+            this.feedback(ctx, 'veinminer.cmd.whitelistRemove', normalized);
             return true;
         }
     }

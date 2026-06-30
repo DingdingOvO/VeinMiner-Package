@@ -1,6 +1,8 @@
 /**
  * VeinReloadCommand.ts
  * 职责：/vein reload - 重新加载所有配置
+ * 客户端模式：重载个人配置
+ * 服务端模式：重载服务端 + 共享配置
  */
 
 import { CommandBase, CommandContext, CommandMeta } from './CommandBase';

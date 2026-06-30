@@ -6,6 +6,7 @@
 import { Player } from '@minecraft/server';
 import { ActionFormData } from '@minecraft/server-ui';
 import { ConfigRegistry } from '../../config/registry/ConfigRegistry';
+import { I18n } from '../../utils/I18n';
 import { Logger } from '../../utils/Logger';
 
 export class ServerWhitelistExtraUI {
@@ -15,22 +16,13 @@ export class ServerWhitelistExtraUI {
             const list = registry.getServerWhitelistExtraStorage().list();
 
             const form = new ActionFormData();
-            form.title('veinminer.ui.server.whitelistExtra');
+            form.title(I18n.for(player, 'veinminer.ui.server.whitelistExtra'));
+            form.body(list.length > 0
+                ? `§7额外白名单 (${list.length}):§r\n${list.map(b => `§8- ${b}`).join('\n')}`
+                : '§7额外白名单为空§r'
+            );
 
-            if (list.length > 0) {
-                form.body({
-                    rawtext: [
-                        { text: '§7' },
-                        { translate: 'veinminer.ui.server.whitelistExtra' },
-                        { text: ` (${list.length}):§r\n` },
-                        { text: list.map(b => `§8- ${b}`).join('\n') }
-                    ]
-                });
-            } else {
-                form.body({ translate: 'veinminer.cmd.extraWhitelistEmpty' });
-            }
-
-            form.button('veinminer.ui.back');
+            form.button(I18n.for(player, 'veinminer.ui.back'));
 
             const response = await form.show(player);
             if (response.canceled) return;

@@ -1,21 +1,15 @@
 /**
  * StatusIndicator.ts
- * 职责：状态指示器（rawtext 节点，用于 form body 组合）
+ * 职责：状态指示器组件
  */
 
-import { RawMessage } from '@minecraft/server';
+import { Player } from '@minecraft/server';
+import { I18n } from '../../utils/I18n';
 
 export class StatusIndicator {
-    /**
-     * 返回 rawtext 节点，用于在 rawtext 数组中组合
-     */
-    public static render(enabled: boolean): RawMessage {
-        return {
-            rawtext: [
-                { text: enabled ? '§a● ' : '§c● ' },
-                { translate: enabled ? 'veinminer.ui.enabled' : 'veinminer.ui.disabled' },
-                { text: '§r' }
-            ]
-        };
+    public static render(player: Player, enabled: boolean): string {
+        return enabled
+            ? `§a● ${I18n.for(player, 'veinminer.ui.enabled')}§r`
+            : `§c● ${I18n.for(player, 'veinminer.ui.disabled')}§r`;
     }
 }

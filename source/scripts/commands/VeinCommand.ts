@@ -15,7 +15,9 @@ export class VeinCommand extends CommandBase {
     };
 
     public execute(ctx: CommandContext): boolean {
-        ctx.player.sendMessage({ translate: 'veinminer.cmd.help' });
+        // 主菜单由 CommandRegistry 在分发时直接处理
+        // 走到这里说明命令格式异常
+        ctx.player.sendMessage('VeinMiner - 使用 /vein <子命令> 查看更多选项');
         return true;
     }
 }
