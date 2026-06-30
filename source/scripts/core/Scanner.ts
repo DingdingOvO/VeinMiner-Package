@@ -1,8 +1,8 @@
 /**
- * BFS.ts — 连锁扫描算法
+ * Scanner.ts — BFS 连锁扫描引擎
  *
- * 6 面方向（矿石/石头） / 26 面方向（原木，覆盖斜向生长）
- * 附带树叶扫描与距离排序
+ * 矿石/石头使用 6 面方向
+ * 原木使用 26 面方向（覆盖斜向生长）
  */
 
 import { Dimension, Vector3 } from '@minecraft/server';
@@ -33,7 +33,7 @@ export interface Pos {
     z: number;
 }
 
-export interface BfsResult {
+export interface ScanResult {
     blocks: Pos[];
     timedOut: boolean;
 }
@@ -42,25 +42,34 @@ export interface BfsResult {
 //  BFS 扫描
 // ═══════════════════════════════════════
 
-function key(x: number, y: number, z: number): string {
+function posKey(x: number, y: number, z: number): string {
     return `${x},${y},${z}`;
 }
 
+/**
+ * BFS 扫描相连的同类型方块
+ * @param dim       维度
+ * @param start     起点坐标
+ * @param targetId  目标方块 typeId
+ * @param maxBlocks 最大数量
+ * @param timeoutMs 超时（ms）
+ * @param use26Dir  是否使用26面方向（原木=true，矿石=false）
+ */
 export function bfsScan(
     dim: Dimension,
     start: Vector3,
-    targetTypeId: string,
+    targetId: string,
     maxBlocks: number,
     timeoutMs: number,
-    use26: boolean,
-): BfsResult {
-    const dirs = use26 ? DIR_26 : DIR_6;
+    use26Dir: boolean,
+): ScanResult {
+    const dirs = use26Dir ? DIR_26 : DIR_6;
     const sx = Math.floor(start.x);
     const sy = Math.floor(start.y);
     const sz = Math.floor(start.z);
 
     const result: Pos[] = [{ x: sx, y: sy, z: sz }];
-    const visited = new Set<string>([key(sx, sy, sz)]);
+    const visited = new Set<string>([posKey(sx, sy, sz)]);
     const queue: Pos[] = [{ x: sx, y: sy, z: sz }];
     const t0 = Date.now();
 
@@ -73,16 +82,20 @@ export function bfsScan(
             const nx = cur.x + d.x;
             const ny = cur.y + d.y;
             const nz = cur.z + d.z;
-            const k = key(nx, ny, nz);
+            const k = posKey(nx, ny, nz);
             if (visited.has(k)) continue;
             visited.add(k);
 
-            let block;
-            try { block = dim.getBlock({ x: nx, y: ny, z: nz }); } catch { continue; }
-            if (!block || block.typeId !== targetTypeId) continue;
+            try {
+                const block = dim.getBlock({ x: nx, y: ny, z: nz });
+                if (!block || block.typeId !== targetId) continue;
+            } catch {
+                continue;
+            }
 
-            result.push({ x: nx, y: ny, z: nz });
-            queue.push({ x: nx, y: ny, z: nz });
+            const pos: Pos = { x: nx, y: ny, z: nz };
+            result.push(pos);
+            queue.push(pos);
             if (result.length >= maxBlocks) return { blocks: result, timedOut: false };
         }
     }
@@ -91,56 +104,13 @@ export function bfsScan(
 }
 
 // ═══════════════════════════════════════
-//  树叶扫描
+//  距离排序（曼哈顿距离，从近到远）
 // ═══════════════════════════════════════
-
-export function scanLeaves(
-    dim: Dimension,
-    logPositions: Pos[],
-    leafTypeIds: ReadonlySet<string>,
-    maxRadius: number,
-    maxCount: number,
-): Pos[] {
-    const leaves: Pos[] = [];
-    const visited = new Set<string>();
-
-    for (const log of logPositions) {
-        if (leaves.length >= maxCount) break;
-        for (let dx = -maxRadius; dx <= maxRadius; dx++) {
-            if (leaves.length >= maxCount) break;
-            for (let dy = -maxRadius; dy <= maxRadius; dy++) {
-                if (leaves.length >= maxCount) break;
-                for (let dz = -maxRadius; dz <= maxRadius; dz++) {
-                    if (leaves.length >= maxCount) break;
-                    const dist = Math.abs(dx) + Math.abs(dy) + Math.abs(dz);
-                    if (dist > maxRadius || dist === 0) continue;
-                    const nx = log.x + dx;
-                    const ny = log.y + dy;
-                    const nz = log.z + dz;
-                    const k = key(nx, ny, nz);
-                    if (visited.has(k)) continue;
-                    visited.add(k);
-                    try {
-                        const b = dim.getBlock({ x: nx, y: ny, z: nz });
-                        if (b && leafTypeIds.has(b.typeId)) {
-                            leaves.push({ x: nx, y: ny, z: nz });
-                        }
-                    } catch { /* ignore */ }
-                }
-            }
-        }
-    }
-    return leaves;
-}
-
-// ═══════════════════════════════════════
-//  距离排序
-// ═══════════════════════════════════════
-
-function manhattan(a: Pos, b: Vector3): number {
-    return Math.abs(a.x - b.x) + Math.abs(a.y - b.y) + Math.abs(a.z - b.z);
-}
 
 export function sortByDistance(blocks: Pos[], origin: Vector3): Pos[] {
-    return [...blocks].sort((a, b) => manhattan(a, origin) - manhattan(b, origin));
+    return [...blocks].sort((a, b) => {
+        const da = Math.abs(a.x - origin.x) + Math.abs(a.y - origin.y) + Math.abs(a.z - origin.z);
+        const db = Math.abs(b.x - origin.x) + Math.abs(b.y - origin.y) + Math.abs(b.z - origin.z);
+        return da - db;
+    });
 }
