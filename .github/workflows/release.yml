@@ -20,6 +20,8 @@ jobs:
 
       - name: Install & Build
         working-directory: source
+        env:
+          PACK_VERSION: ${{ github.ref_name }}
         run: |
           npm install
           npm run build
