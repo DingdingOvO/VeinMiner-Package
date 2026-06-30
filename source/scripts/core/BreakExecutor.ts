@@ -1,7 +1,11 @@
 /**
- * BreakExecutor.ts — 方块破坏执行
+ * BreakExecutor.ts — 分 tick 队列破坏执行
  *
- * 负责实际的方块破坏、耐久消耗、掉落物集中
+ * 设计要点：
+ *   - 每个玩家独立队列（Map<playerId, state>），多人互不影响
+ *   - 同一玩家挖新矿时直接替换队列，旧任务立即作废
+ *   - 每 tick 执行 BATCH_SIZE 个方块，不卡服
+ *   - 耐久逐个消耗，损坏立即停止
  */
 
 import { Player, Dimension, Vector3, system } from '@minecraft/server';
@@ -9,19 +13,31 @@ import { Pos, sortByDistance } from './Scanner';
 import { getHeldTool, consumeDurability } from '../utils';
 
 const TAG = '§8[VM]§r';
+const BATCH_SIZE = 20;
 
 // ═══════════════════════════════════════
-//  执行破坏
+//  类型
+// ═══════════════════════════════════════
+
+interface QueueState {
+    blocks: Pos[];
+    running: boolean;
+    broken: number;
+    origin: Vector3;
+    collectDrops: boolean;
+    tool: ReturnType<typeof getHeldTool>;
+}
+
+/** playerId → 该玩家的破坏队列 */
+const playerQueues = new Map<string, QueueState>();
+
+// ═══════════════════════════════════════
+//  对外接口
 // ═══════════════════════════════════════
 
 /**
- * 批量破坏方块
- * @param player         玩家
- * @param dimension      维度
- * @param blocks         要破坏的方块坐标（不含起点，起点由玩家正常破坏）
- * @param leafBlocks     树叶方块坐标（可选）
- * @param origin         起点坐标（用于距离排序和掉落物集中）
- * @param collectDrops   是否集中掉落物
+ * 提交破坏任务
+ * 如果该玩家已有未完成的任务，直接替换（旧任务作废）
  */
 export function executeBreak(
     player: Player,
@@ -31,35 +47,84 @@ export function executeBreak(
     origin: Vector3,
     collectDrops: boolean,
 ): void {
-    const tool = getHeldTool(player);
+    const pid = player.id;
     const sorted = sortByDistance(blocks, origin);
     const sortedLeaves = sortByDistance(leafBlocks, origin);
     const allPos = [...sorted, ...sortedLeaves];
 
-    let broken = 0;
+    // 新建或替换该玩家的队列
+    playerQueues.set(pid, {
+        blocks: allPos,
+        running: false,
+        broken: 0,
+        origin,
+        collectDrops,
+        tool: getHeldTool(player),
+    });
 
-    for (const pos of allPos) {
-        // 耐久消耗
-        if (tool.durability) {
-            const isBroken = consumeDurability(tool);
+    // 如果该玩家没有在跑的循环，启动一个
+    const state = playerQueues.get(pid)!;
+    if (!state.running) {
+        state.running = true;
+        processTick(player, dimension, pid);
+    }
+}
+
+// ═══════════════════════════════════════
+//  内部：每 tick 处理一批
+// ═══════════════════════════════════════
+
+function processTick(player: Player, dimension: Dimension, pid: string): void {
+    const state = playerQueues.get(pid);
+
+    // 队列被清空（玩家下线或被替换后清理）
+    if (!state || state.blocks.length === 0) {
+        finishPlayer(pid, player, state);
+        return;
+    }
+
+    // 取出一批
+    const batch = state.blocks.splice(0, BATCH_SIZE);
+
+    for (const pos of batch) {
+        // 耐久检查
+        if (state.tool.durability) {
+            const isBroken = consumeDurability(state.tool);
             if (isBroken) {
                 player.onScreenDisplay.setActionBar(`${TAG} §c工具已损坏`);
+                state.blocks = []; // 清空队列，下次 tick 会结束
                 break;
             }
         }
 
         try {
             dimension.runCommand(`setblock ${pos.x} ${pos.y} ${pos.z} air destroy`);
-            broken++;
+            state.broken++;
         } catch {
             // 方块已被其他方式破坏
         }
     }
 
-    if (broken > 0) {
-        player.onScreenDisplay.setActionBar(`${TAG} §a+${broken} 方块`);
-        if (collectDrops) {
-            collectDropsToOrigin(dimension, allPos, origin);
+    // 还有剩余 → 下一 tick 继续
+    if (state.blocks.length > 0) {
+        system.run(() => processTick(player, dimension, pid));
+    } else {
+        finishPlayer(pid, player, state);
+    }
+}
+
+// ═══════════════════════════════════════
+//  内部：玩家任务完成/中断
+// ═══════════════════════════════════════
+
+function finishPlayer(pid: string, player: Player, state: QueueState | undefined): void {
+    playerQueues.delete(pid);
+
+    if (state && state.broken > 0) {
+        player.onScreenDisplay.setActionBar(`${TAG} §a+${state.broken} 方块`);
+
+        if (state.collectDrops) {
+            collectDropsToOrigin(player.dimension, state.origin);
         }
     }
 }
@@ -68,21 +133,15 @@ export function executeBreak(
 //  掉落物集中
 // ═══════════════════════════════════════
 
-function collectDropsToOrigin(
-    dimension: Dimension,
-    _positions: Pos[],
-    target: Vector3,
-): void {
+function collectDropsToOrigin(dimension: Dimension, target: Vector3): void {
     system.run(() => {
         try {
             const maxDist = 6;
-
             const items = dimension.getEntities({
                 location: target,
                 maxDistance: maxDist,
                 type: 'minecraft:item',
             });
-
             for (const item of items) {
                 try {
                     item.teleport(target, { keepVelocity: false });
