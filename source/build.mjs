@@ -1,8 +1,9 @@
 /**
  * build.mjs — VeinMiner 构建脚本（纯行为包）
  *
- * 流程：tsc 编译 → 复制静态文件 → zip 成 .mcaddon
- * .mcaddon 就是行为包文件的直接 zip，不嵌套
+ * 流程：tsc 编译 → 复制静态文件 → zip 成 .mcpack → 再套 .mcaddon
+ * .mcpack = 行为包内容直接 zip
+ * .mcaddon = 包含 .mcpack 的 zip（游戏用这个导入）
  */
 
 import fs from 'fs';
@@ -34,25 +35,37 @@ function copyStatics() {
 }
 
 // ═══════════════════════════════════════
-//  打包 .mcaddon（纯行为包，直接 zip）
+//  打包：build/ → .mcpack → .mcaddon
 // ═══════════════════════════════════════
 
-function createMcaddon() {
+function createPackages() {
     if (!fs.existsSync(OUTPUT_DIR)) {
         fs.mkdirSync(OUTPUT_DIR, { recursive: true });
     }
 
     const version = process.env.PACK_VERSION || 'v0.1.0-alpha';
-    const fileName = `VeinMiner-${version}.mcaddon`;
-    const outputPath = path.join(OUTPUT_DIR, fileName);
+    const mcpackName = `VeinMiner-${version}.mcpack`;
+    const mcaddonName = `VeinMiner-${version}.mcaddon`;
+    const mcpackPath = path.join(OUTPUT_DIR, mcpackName);
+    const mcaddonPath = path.join(OUTPUT_DIR, mcaddonName);
 
-    if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+    // 清理旧文件
+    if (fs.existsSync(mcpackPath)) fs.unlinkSync(mcpackPath);
+    if (fs.existsSync(mcaddonPath)) fs.unlinkSync(mcaddonPath);
 
-    // 直接把 build/ 内容 zip 成 .mcaddon（不嵌套）
-    execSync(`cd "${BUILD_DIR}" && zip -r "${outputPath}" .`, { stdio: 'pipe' });
+    // 1. build/ 内容 zip 成 .mcpack
+    execSync(`cd "${BUILD_DIR}" && zip -r "${mcpackPath}" .`, { stdio: 'pipe' });
+    const mcpackSize = (fs.statSync(mcpackPath).size / 1024).toFixed(1);
+    console.log(`  ✓ ${mcpackName} (${mcpackSize} KB)`);
 
-    const size = (fs.statSync(outputPath).size / 1024).toFixed(1);
-    console.log(`  ✓ ${fileName} (${size} KB)`);
+    // 2. .mcpack 套进 .mcaddon
+    execSync(`cd "${OUTPUT_DIR}" && zip "${mcaddonPath}" "${mcpackName}"`, { stdio: 'pipe' });
+    const mcaddonSize = (fs.statSync(mcaddonPath).size / 1024).toFixed(1);
+    console.log(`  ✓ ${mcaddonName} (${mcaddonSize} KB)`);
+
+    // 3. 删除中间 .mcpack（.mcaddon 才是最终产物）
+    fs.unlinkSync(mcpackPath);
+    console.log(`  清理中间文件 ${mcpackName}`);
 }
 
 // ═══════════════════════════════════════
@@ -78,6 +91,6 @@ if (!fs.existsSync(BUILD_DIR)) {
 }
 
 copyStatics();
-createMcaddon();
+createPackages();
 
 console.log('\n  ✓ 构建完成！');
