@@ -10,7 +10,7 @@ export const SLIDER_MIN = 1;
 export const SLIDER_MAX = 256;
 
 /** BFS 扫描超时（ms），防止卡服 */
-export const SCAN_TIMEOUT_MS = 50;
+export const SCAN_TIMEOUT_MS = 100;
 
 /** 树叶扫描半径（曼哈顿距离） */
 export const LEAF_SCAN_RADIUS = 4;

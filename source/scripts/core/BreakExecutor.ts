@@ -70,7 +70,7 @@ export function executeBreak(
 
 function collectDropsToOrigin(
     dimension: Dimension,
-    positions: Pos[],
+    _positions: Pos[],
     target: Vector3,
 ): void {
     system.run(() => {
