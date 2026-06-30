@@ -41,8 +41,8 @@ export function executeBreak(
     for (const pos of allPos) {
         // 耐久消耗
         if (tool.durability) {
-            const broken_ = consumeDurability(tool);
-            if (broken_) {
+            const isBroken = consumeDurability(tool);
+            if (isBroken) {
                 player.onScreenDisplay.setActionBar(`${TAG} §c工具已损坏`);
                 break;
             }
