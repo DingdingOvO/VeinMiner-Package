@@ -5,13 +5,15 @@
  *   - 每个玩家独立队列（Map<playerId, state>），多人互不影响
  *   - 同一玩家挖新矿时直接替换队列，旧任务立即作废
  *   - 每 tick 执行 BATCH_SIZE 个方块，不卡服
- *   - 使用 player.runCommand 继承时运/精准采集等附魔
- *   - 耐久由游戏引擎自动处理，工具坏了 runCommand 自然抛错
+ *   - 矿石：手动计算附魔掉落（时运/精准采集），setblock air 清空方块
+ *   - 非矿石（原木/树叶等）：setblock air destroy 走原版掉落
+ *   - 耐久由游戏引擎自动处理
  *   - 每 tick 重新查找玩家，防止引用失效
  */
 
 import { world, system, Player, Dimension, Vector3 } from '@minecraft/server';
 import { Pos, sortByDistance } from './Scanner';
+import { getDrops, getExperience, spawnDrops } from '../utils/EnchantmentHelper';
 
 const TAG = '§8[VM]§r';
 const BATCH_SIZE = 20;
@@ -89,16 +91,36 @@ function processTick(pid: string): void {
         return;
     }
 
+    const dimension = player.dimension;
+
     // 取出一批
     const batch = state.blocks.splice(0, BATCH_SIZE);
 
     for (const pos of batch) {
         try {
-            // player.runCommand 继承时运/精准采集附魔，耐久由游戏引擎消耗
-            player.runCommand(`setblock ${pos.x} ${pos.y} ${pos.z} air destroy`);
+            // 尝试获取方块类型
+            const block = dimension.getBlock(pos);
+            if (!block) continue;
+
+            const blockId = block.typeId;
+
+            // 尝试精确掉落（矿石受时运/精准采集影响）
+            const drops = getDrops(blockId, player);
+
+            if (drops) {
+                // 手动生成掉落物
+                const exp = getExperience(blockId);
+                spawnDrops(dimension, block.location, drops, exp);
+                // 清空方块（不带 destroy，不掉原版掉落）
+                player.runCommand(`setblock ${pos.x} ${pos.y} ${pos.z} air`);
+            } else {
+                // 非矿石（原木/树叶等）：走原版掉落
+                player.runCommand(`setblock ${pos.x} ${pos.y} ${pos.z} air destroy`);
+            }
+
             state.broken++;
         } catch {
-            // 工具损坏 / 方块已被破坏 / 玩家下线 → 停止
+            // 工具损坏 / 方块已消失 / 玩家下线 → 停止
             state.blocks = [];
             break;
         }
