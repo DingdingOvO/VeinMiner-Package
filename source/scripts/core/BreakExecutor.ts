@@ -7,13 +7,14 @@
  *   - 每 tick 执行 BATCH_SIZE 个方块，不卡服
  *   - 矿石：手动计算附魔掉落（时运/精准采集），setblock air 清空方块
  *   - 非矿石（原木/树叶等）：setblock air destroy 走原版掉落
+ *   - 掉落物集中：直接持有 Entity 引用，结束时遍历传送，零搜索开销
  *   - 耐久由游戏引擎自动处理
  *   - 每 tick 重新查找玩家，防止引用失效
  */
 
-import { world, system, Player, Dimension, Vector3 } from '@minecraft/server';
+import { world, system, Player, Dimension, Vector3, Entity } from '@minecraft/server';
 import { Pos, sortByDistance } from './Scanner';
-import { getDrops, getExperience, spawnDrops, VM_DROP_TAG } from '../utils/EnchantmentHelper';
+import { getDrops, getExperience, spawnDrops } from '../utils/EnchantmentHelper';
 
 const TAG = '§8[VM]§r';
 const BATCH_SIZE = 20;
@@ -28,6 +29,8 @@ interface QueueState {
     broken: number;
     origin: Vector3;
     collectDrops: boolean;
+    /** 本次连锁产生的掉落物实体引用 */
+    droppedItems: Entity[];
 }
 
 /** playerId → 该玩家的破坏队列 */
@@ -61,6 +64,7 @@ export function executeBreak(
         broken: 0,
         origin,
         collectDrops,
+        droppedItems: [],
     });
 
     // 如果该玩家没有在跑的循环，启动一个
@@ -108,9 +112,12 @@ function processTick(pid: string): void {
             const drops = getDrops(blockId, player);
 
             if (drops) {
-                // 手动生成掉落物
+                // 手动生成掉落物，收集实体引用
                 const exp = getExperience(blockId);
-                spawnDrops(dimension, block.location, drops, exp);
+                const entities = spawnDrops(dimension, block.location, drops, exp);
+                if (state.collectDrops && entities.length > 0) {
+                    state.droppedItems.push(...entities);
+                }
                 // 清空方块（不带 destroy，不掉原版掉落）
                 player.runCommand(`setblock ${pos.x} ${pos.y} ${pos.z} air`);
             } else {
@@ -146,37 +153,27 @@ function finishPlayer(pid: string, state: QueueState | undefined): void {
         if (player) {
             player.onScreenDisplay.setActionBar(`${TAG} §a+${state.broken} 方块`);
 
-            if (state.collectDrops) {
-                collectDropsToOrigin(player.dimension, state.origin);
+            if (state.collectDrops && state.droppedItems.length > 0) {
+                collectDropsToOrigin(state.origin, state.droppedItems);
             }
         }
     }
 }
 
 // ═══════════════════════════════════════
-//  掉落物集中
+//  掉落物集中 — 直接用实体引用，零搜索
 // ═══════════════════════════════════════
 
-function collectDropsToOrigin(dimension: Dimension, target: Vector3): void {
+function collectDropsToOrigin(target: Vector3, items: Entity[]): void {
     system.run(() => {
-        try {
-            const maxDist = 10;
-            const items = dimension.getEntities({
-                location: target,
-                maxDistance: maxDist,
-                type: 'minecraft:item',
-            });
-            for (const item of items) {
-                if (!item.hasTag(VM_DROP_TAG)) continue;
-                try {
+        for (const item of items) {
+            try {
+                if (item.isValid) {
                     item.teleport(target, { keepVelocity: false });
-                    item.removeTag(VM_DROP_TAG);
-                } catch {
-                    // 传送失败忽略
                 }
+            } catch {
+                // 实体已被拾取或消失，忽略
             }
-        } catch {
-            // 整体异常忽略
         }
     });
 }

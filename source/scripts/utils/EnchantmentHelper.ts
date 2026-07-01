@@ -5,21 +5,10 @@
  *   - 根据时运等级计算矿物掉落数量
  *   - 精准采集直接掉原矿方块
  *   - 生成经验球
- *   - 给连锁掉落物打隐藏 tag（用于精准聚集）
+ *   - 返回生成的掉落物实体引用（供 BreakExecutor 直接持有，避免搜索）
  */
 
-import { Player, ItemStack, Dimension, Vector3 } from '@minecraft/server';
-
-// ═══════════════════════════════════════
-//  连锁掉落物隐藏 tag
-// ═══════════════════════════════════════
-
-/**
- * 连锁产生的掉落物标记。
- * 前缀 §r 是 Minecraft 格式化重置码，普通 /tag 命令无法匹配这种 tag，
- * 只能通过 API hasTag() 精确查找。
- */
-export const VM_DROP_TAG = '§rvm_drop';
+import { Player, ItemStack, Dimension, Vector3, Entity } from '@minecraft/server';
 
 // ═══════════════════════════════════════
 //  矿物掉落映射表
@@ -133,18 +122,21 @@ export function getDrops(
 
 /**
  * 在指定位置生成掉落物和经验球
+ * @returns 生成的掉落物实体数组（不含经验球），供外部持有引用
  */
 export function spawnDrops(
     dimension: Dimension,
     pos: Vector3,
     drops: { itemId: string; count: number }[],
     exp: number,
-): void {
+): Entity[] {
+    const entities: Entity[] = [];
+
     for (const drop of drops) {
         try {
             const item = new ItemStack(drop.itemId, drop.count);
             const entity = dimension.spawnItem(item, pos);
-            entity.addTag(VM_DROP_TAG);
+            entities.push(entity);
         } catch {
             // 掉落物生成失败忽略
         }
@@ -157,6 +149,8 @@ export function spawnDrops(
             // 经验球生成失败忽略
         }
     }
+
+    return entities;
 }
 
 /**
