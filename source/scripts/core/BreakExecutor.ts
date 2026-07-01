@@ -13,7 +13,7 @@
 
 import { world, system, Player, Dimension, Vector3 } from '@minecraft/server';
 import { Pos, sortByDistance } from './Scanner';
-import { getDrops, getExperience, spawnDrops } from '../utils/EnchantmentHelper';
+import { getDrops, getExperience, spawnDrops, VM_DROP_TAG } from '../utils/EnchantmentHelper';
 
 const TAG = '§8[VM]§r';
 const BATCH_SIZE = 20;
@@ -160,15 +160,17 @@ function finishPlayer(pid: string, state: QueueState | undefined): void {
 function collectDropsToOrigin(dimension: Dimension, target: Vector3): void {
     system.run(() => {
         try {
-            const maxDist = 6;
+            const maxDist = 10;
             const items = dimension.getEntities({
                 location: target,
                 maxDistance: maxDist,
                 type: 'minecraft:item',
             });
             for (const item of items) {
+                if (!item.hasTag(VM_DROP_TAG)) continue;
                 try {
                     item.teleport(target, { keepVelocity: false });
+                    item.removeTag(VM_DROP_TAG);
                 } catch {
                     // 传送失败忽略
                 }

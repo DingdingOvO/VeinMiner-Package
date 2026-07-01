@@ -5,9 +5,21 @@
  *   - 根据时运等级计算矿物掉落数量
  *   - 精准采集直接掉原矿方块
  *   - 生成经验球
+ *   - 给连锁掉落物打隐藏 tag（用于精准聚集）
  */
 
 import { Player, ItemStack, Dimension, Vector3 } from '@minecraft/server';
+
+// ═══════════════════════════════════════
+//  连锁掉落物隐藏 tag
+// ═══════════════════════════════════════
+
+/**
+ * 连锁产生的掉落物标记。
+ * 前缀 §r 是 Minecraft 格式化重置码，普通 /tag 命令无法匹配这种 tag，
+ * 只能通过 API hasTag() 精确查找。
+ */
+export const VM_DROP_TAG = '§rvm_drop';
 
 // ═══════════════════════════════════════
 //  矿物掉落映射表
@@ -131,7 +143,8 @@ export function spawnDrops(
     for (const drop of drops) {
         try {
             const item = new ItemStack(drop.itemId, drop.count);
-            dimension.spawnItem(item, pos);
+            const entity = dimension.spawnItem(item, pos);
+            entity.addTag(VM_DROP_TAG);
         } catch {
             // 掉落物生成失败忽略
         }

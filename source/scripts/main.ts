@@ -20,7 +20,7 @@ const TAG = '§8[VM]§r';
 //  启动
 // ═══════════════════════════════════════
 
-console.warn('[VM] VeinMiner v0.3.0 启动中...');
+console.warn('[VM] VeinMiner v0.3.1 启动中...');
 
 registerVeinMiner();
 registerChatHandler();

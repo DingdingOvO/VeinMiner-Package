@@ -1,6 +1,6 @@
 {
     "name": "veinminer-addon",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "description": "Minecraft 基岩版连锁采集行为包 - 自动环境适配",
     "type": "module",
     "scripts": {
